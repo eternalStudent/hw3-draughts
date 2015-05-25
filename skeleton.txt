@@ -57,18 +57,6 @@ PossibleMove.h:
 PossibleMove.c:
 	include PossibleMove.h
 
-PossibleMoveList.h:	
-	include LinkedList.c
-	include PossibleMove.c
-
-	struct LinkedList* PossibleMoveList_new()
-	int PossibleMoveList_add(struct LinkedList*, struct PossibleMove*)
-	void PossibleMoveList_newIteration(struct LinkedList*)
-	void PossibleMoveList_free(struct LinkedList*)
-
-PossibleMoveList.c:
-	include PossibleMoveList.h
-
 Board.h:
 	include PossibleMoveList.c
 

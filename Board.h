@@ -6,16 +6,16 @@
 #define Board_SIZE       10
 
 
-int  Board_init    (char[Board_SIZE][Board_SIZE] board);
+void Board_init    (char board[Board_SIZE][Board_SIZE]);
 
-void Board_clear   (char[Board_SIZE][Board_SIZE] board);
+void Board_clear   (char board[Board_SIZE][Board_SIZE]);
 
-int  Board_set     (char[Board_SIZE][Board_SIZE] board, char x, int y, char piece);
+int  Board_set     (char board[Board_SIZE][Board_SIZE], char x, int y, char piece);
 
-int  Board_remove  (char[Board_SIZE][Board_SIZE] board, char x, int y);
+int  Board_remove  (char board[Board_SIZE][Board_SIZE], char x, int y);
 
-int  Board_move    (char[Board_SIZE][Board_SIZE] board, char oldX, int oldY, char newX, int newY);
+int  Board_move    (char board[Board_SIZE][Board_SIZE], char oldX, int oldY, char newX, int newY);
 
-int  Board_getScore(char[Board_SIZE][Board_SIZE] board);
+int  Board_getScore(char board[Board_SIZE][Board_SIZE]);
 
-void Board_print   (char[Board_SIZE][Board_SIZE] board);
+void Board_print   (char board[Board_SIZE][Board_SIZE]);
