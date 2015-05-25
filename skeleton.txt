@@ -1,0 +1,124 @@
+LinkedList.h:
+	struct ListNode
+		void* data
+		struct listNode* next
+	struct LinkedList
+		int length
+		struct listNode* first
+		struct listNode* last
+		(void*)->() freeFunc
+
+	struct LinkedList* LinkedList_new( (void*)->() );
+	int LinkedList_add(struct LinkedList*, struct ListNode*)
+	int LinkedList_length(struct LinkedList*)
+	int LinkedList_free(struct LinkedList*)
+
+LinkedList.c:
+	include LinkedList.h
+
+	static ListNode_new(void*)
+
+Iterator.h:
+	include LinkedList.c
+
+	struct Iterator
+		ListNode first
+		listNode currnet
+
+	struct Iterator* Iterator_new(struct LinkedList* list)
+	void* Iterator_next(struct Iterator*)
+	int Iterator_hasNext(struct Iterator*)
+	void Iterator_free(struct Iterator*)
+
+Tile.h:
+	struct Tile
+		char x
+		int y
+
+	struct Point* Point_new(int, char)
+	void Point_print(struct Point*)
+	void Point_free(void*)
+
+Tile.c:
+	include Tile.h
+
+PossibleMove.h:
+	include Tile.c
+
+	struct PossibleMove
+		struct Tile* start
+		struct LinkedList* moves
+		char[][] board
+
+	struct PossibleMove* PossibleMove_new(struct Point*, struct LinkedList*, char[][])
+	void PossibleMove_print(struct PossibleMove*)
+	void PossibleMove_free(void*)
+
+PossibleMove.c:
+	include PossibleMove.h
+
+PossibleMoveList.h:	
+	include LinkedList.c
+	include PossibleMove.c
+
+	struct LinkedList* PossibleMoveList_new()
+	int PossibleMoveList_add(struct LinkedList*, struct PossibleMove*)
+	void PossibleMoveList_newIteration(struct LinkedList*)
+	void PossibleMoveList_free(struct LinkedList*)
+
+PossibleMoveList.c:
+	include PossibleMoveList.h
+
+Board.h:
+	include PossibleMoveList.c
+
+	define Board_WHITE_MAN
+	define Board_WHITE_KING
+	define Board_BLACK_MAN
+	define Board_BLACK_KING
+	define Board_EMPTY 
+	define Board_SIZE	
+
+	int Board_init(char[][])
+	int Board_clear(char[][])
+	int Board_set(char[][], char, int, char)
+	int Board_remove(char[][], char, int)
+	int Board_move(char[][], char, int, char, int)
+	struct LinkedList* Board_getPossibleMoves(char[][], int)
+	char[][] Board_possibleBoard(char[][], struct PossibleMove*)
+	int Board_getScore(char[][]) 
+	void Board_print(char[][])
+
+Board.c:
+	include Board.h
+	
+	static int Board_charToInt(char)
+	static int isInRange(int, int);
+
+draughts.c:
+	include Board.c
+	include PossibleMoveList.c
+	define BLACK 0
+	define WHITE 1
+
+bestMove = minimax(Board_getPossibleMoves(board, AI), maxRecursionLevel, AI);
+
+struct PossibleMove minimax(struct PossibleMove* possibleMove, depth, player){
+	if (depth == 0 ){
+		return possibleMove;
+	}
+	int extremum;
+	struct LinkedList* possibleMoves = Board_getPossibleMoves(possibleMove->board, player);
+	PossibleMoveList_newIteration(possibleMoves);
+	struct PossibleMove* currentPossibleMove = PossibleMoveList_next(possibleMoves);
+	struct possibleMove* bestMove = currentPossibleMove;
+	while (currentPossibleMove != NULL) {
+		int score = Board_getScore(minimax(Board_getPossibleMove(bestMove), !player, depth-1)); 
+		if (player == BLACK && vlaue>extremum || player == WHITE && value<extremum || isRandom() && value == extremum){
+			extremum = value;
+			bestMove = currentPossibleMove;
+		}
+		currentPossibleMove = possibleMoveList_next(possibleMoves);
+	}
+	return bestPossibleMove;
+}
