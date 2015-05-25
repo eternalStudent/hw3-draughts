@@ -93,7 +93,7 @@ int Board_move(char board[Board_SIZE][Board_SIZE], char oldCh, int oldY, char ne
 }
 
 /*
- * Evaluates the board.
+ * Evaluates the board according to the specified scoring function.
  *
  * @return: a numeric evaluation of the board.
  */

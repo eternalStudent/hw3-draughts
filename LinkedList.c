@@ -2,6 +2,10 @@
 #include <stdlib.h>
 #include <string.h>
 
+/* 
+ * creates a new LinkedList structure
+ */
+
 struct LinkedList* LinkedList_new(void(*freeFunc)(void*)){
 	struct LinkedList* list;
 	list = (struct LinkedList*)calloc(1, sizeof(struct LinkedList));
@@ -15,6 +19,10 @@ struct LinkedList* LinkedList_new(void(*freeFunc)(void*)){
 	return list;
 }
 
+/* 
+ * creates a new ListNode structure, representing a single node of a linked list
+ */
+
 static struct ListNode* ListNode_new(void* data){
 	struct ListNode* node;
 	node = (struct ListNode*)calloc(1, sizeof(struct ListNode));
@@ -24,6 +32,10 @@ static struct ListNode* ListNode_new(void* data){
 	node->data = data;
 	return node;
 }
+
+/* 
+ * appends to the given list a new node containing the given data
+ */
 
 int LinkedList_add(struct LinkedList* list, void* data){
 	struct ListNode* node = ListNode_new(data);
@@ -41,9 +53,18 @@ int LinkedList_add(struct LinkedList* list, void* data){
 	return 0;
 }
 
+/* 
+ * @return the length of a given list
+ */
+
 int LinkedList_length(struct LinkedList* list){
 	return list->length;
 }
+
+/* 
+ * frees up all of the memory allocated to a given list, including all of its nodes
+ */
+
 
 void LinkedList_free(struct LinkedList* list){
 	struct ListNode* node = list->first;
@@ -54,13 +75,4 @@ void LinkedList_free(struct LinkedList* list){
 		node = next;
 	}
 	free(list);
-}
-
-void LinkedList_print(struct LinkedList* list){
-	struct Iterator* iterator = Iterator_new(list);
-	while (Iterator_hasNext(iterator)){
-		struct Tile* tile = (struct Tile*)Iterator_next(iterator);
-		Tile_print(tile);
-	}
-	Iterator_free(iterator);
 }
