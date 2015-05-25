@@ -17,3 +17,5 @@ int LinkedList_add(struct LinkedList* list, void* data);
 int LinkedList_length(struct LinkedList* list);
 
 void LinkedList_free(struct LinkedList* list);
+
+void LinkedList_print(struct LinkedList* list);

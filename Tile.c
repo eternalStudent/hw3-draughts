@@ -1,5 +1,6 @@
 #include "Tile.h"
 #include <stdio.h>
+#include <stdlib.h>
 
 struct Tile* Tile_new(char x, int y){
 	struct Tile* tile;

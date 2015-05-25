@@ -8,16 +8,6 @@ int main(){
 	LinkedList_add(list, (void*)a);
 	struct Tile* b = Tile_new('b', 6);
 	LinkedList_add(list, (void*)b);
-	struct Iterator* iterator = Iterator_new(list);
-	printf("[");
-	while (Iterator_hasNext(iterator)){
-		struct Tile* tile = (struct Tile*)Iterator_next(iterator);
-		Tile_print(tile);
-		if (Iterator_hasNext(iterator)){
-			printf(",");
-		}
-	}
-	printf("]\n");
-	Iterator_free(iterator);
+	LinkedList_print(list);
 	LinkedList_free(list);
 }

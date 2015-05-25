@@ -55,3 +55,12 @@ void LinkedList_free(struct LinkedList* list){
 	}
 	free(list);
 }
+
+void LinkedList_print(struct LinkedList* list){
+	struct Iterator* iterator = Iterator_new(list);
+	while (Iterator_hasNext(iterator)){
+		struct Tile* tile = (struct Tile*)Iterator_next(iterator);
+		Tile_print(tile);
+	}
+	Iterator_free(iterator);
+}
