@@ -2,7 +2,7 @@
 #include "Board.h"
 
 /*
- *  Populates the board in the standard way.
+ * Populates the board in the standard way.
  */
 void Board_init(char board[Board_SIZE][Board_SIZE]){
 	for (int x = 0; x < Board_SIZE; x++){
@@ -47,8 +47,8 @@ static int isInRange(int x, int y){
 /*
  * Place a piece on the board.
  *
- * @params: (x, y) are the coordinates of the tile, piece is the piece to be put.
- * @return: -1 if (x, y) is out of range, 0 otherwise;
+ * @params: (x, y) are the coordinates of the tile, piece is the piece to be put
+ * @return: -1 if (x, y) is out of range, 0 otherwise
  */
 int Board_set(char board[Board_SIZE][Board_SIZE], char ch, int y, char piece){
 	int x = charToInt(ch);
@@ -62,8 +62,8 @@ int Board_set(char board[Board_SIZE][Board_SIZE], char ch, int y, char piece){
 /*
  * Removes a piece from the board.
  * 
- * @params: (x, y) are the coordinates of the tile in which the piece to be removed is placed.
- * @return: -1 if the coordinates are out of range, 0 otherwise.
+ * @params: (x, y) are the coordinates of the tile in which the piece to be removed is placed
+ * @return: -1 if the coordinates are out of range, 0 otherwise
  */
 int Board_remove(char board[Board_SIZE][Board_SIZE], char ch, int y){
 	int x = charToInt(ch);
@@ -77,8 +77,8 @@ int Board_remove(char board[Board_SIZE][Board_SIZE], char ch, int y){
 /*
  * Moves a piece to a different tile in the board.
  *
- * @params: (oldX, oldY) are the coordinates of the piece to be moved. (newX, newY) are the coordinates the piece will be moved to.
- * @return: -1 if any of the coordinates are out of range or the desired location is occupied, 0 otherwise.
+ * @params: (oldX, oldY) are the coordinates of the piece to be moved. (newX, newY) are the coordinates the piece will be moved to
+ * @return: -1 if any of the coordinates are out of range or the desired location is occupied, 0 otherwise
  */
 int Board_move(char board[Board_SIZE][Board_SIZE], char oldCh, int oldY, char newCh, int newY){
 	int oldX = charToInt(oldCh);
@@ -95,7 +95,7 @@ int Board_move(char board[Board_SIZE][Board_SIZE], char oldCh, int oldY, char ne
 /*
  * Evaluates the board according to the specified scoring function.
  *
- * @return: a numeric evaluation of the board.
+ * @return: a numeric evaluation of the board
  */
 int Board_getScore(char board[Board_SIZE][Board_SIZE]){
 	int score = 0;

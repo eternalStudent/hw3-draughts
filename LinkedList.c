@@ -3,9 +3,11 @@
 #include <string.h>
 
 /* 
- * creates a new LinkedList structure
+ * Creates a new LinkedList structure.
+ *
+ * @params: freeFunc - the function that will free the data
+ * @return: NULL if any allocation errors occurred, the list otherwise
  */
-
 struct LinkedList* LinkedList_new(void(*freeFunc)(void*)){
 	struct LinkedList* list;
 	list = (struct LinkedList*)calloc(1, sizeof(struct LinkedList));
@@ -20,9 +22,11 @@ struct LinkedList* LinkedList_new(void(*freeFunc)(void*)){
 }
 
 /* 
- * creates a new ListNode structure, representing a single node of a linked list
+ * Creates a new ListNode structure, containing a pointer to a new element in a list.
+ *
+ * @params: data - a pointer to the element
+ * @return: NULL if any allocation errors occurred, the node otherwise
  */
-
 static struct ListNode* ListNode_new(void* data){
 	struct ListNode* node;
 	node = (struct ListNode*)calloc(1, sizeof(struct ListNode));
@@ -34,9 +38,11 @@ static struct ListNode* ListNode_new(void* data){
 }
 
 /* 
- * appends to the given list a new node containing the given data
+ * Appends a new element to the end of the list.
+ * 
+ * @params: data - a pointer to the element
+ * @return: -1 if any allocation errors occurred, 0 otherwise
  */
-
 int LinkedList_add(struct LinkedList* list, void* data){
 	struct ListNode* node = ListNode_new(data);
 	if (node == NULL){
@@ -54,18 +60,15 @@ int LinkedList_add(struct LinkedList* list, void* data){
 }
 
 /* 
- * @return the length of a given list
+ * @return: the number of elements in the list
  */
-
 int LinkedList_length(struct LinkedList* list){
 	return list->length;
 }
 
 /* 
- * frees up all of the memory allocated to a given list, including all of its nodes
+ * Frees the list from memory.
  */
-
-
 void LinkedList_free(struct LinkedList* list){
 	struct ListNode* node = list->first;
 	while (node != NULL){
