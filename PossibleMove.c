@@ -5,10 +5,10 @@
  * a list of tiles that are part of the move itself, and the state of the
  * board after this particular move has been carried out. 
  *
- * @params: start - a pointer to the starting tile, moves - a pointer to the list of individual tile moves, board - the initial state of the board
+ * @params: start - a pointer to the starting tile, moves - a pointer to the list of individual tile moves, board - the board after the move.
  * @return: NULL if any allocation errors occurred, the structure otherwise
  */
-struct PossibleMove* PossibleMove_new(struct Tile* start, struct LinkedList* list, char board[Board_SIZE][Board_SIZE]){
+struct PossibleMove* PossibleMove_new(struct Tile* start, struct LinkedList* list, char** board){
 	struct PossibleMove* move;
 	move = (struct PossibleMove*)calloc(1, sizeof(struct PossibleMove));
 	if (!move){
@@ -16,7 +16,7 @@ struct PossibleMove* PossibleMove_new(struct Tile* start, struct LinkedList* lis
 	}
 	move->start = start;
 	move->moves = list;
-	move->board = Board_getPossibleBoard(board, move); //this will also allocate the board in memory.
+	move->board = board;
 	return move;
 }
 
@@ -27,7 +27,7 @@ void PossibleMove_print(struct PossibleMove* move){
 	printf("move ");
 	Tile_print(move->start);
 	printf(" to ");
-	struct Iterator* iterator = Iterator_new(list);
+	struct Iterator* iterator = Iterator_new(move->moves);
 	while (Iterator_hasNext(iterator)){
 		struct Tile* tile = (struct Tile*)Iterator_next(iterator);
 		Tile_print(tile);

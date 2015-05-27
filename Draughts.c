@@ -6,22 +6,42 @@
 
 #define BLACK 0
 #define WHITE 1
+#define MAX_ERROR_MSG 0x1000
 
 char board[Board_SIZE][Board_SIZE];
 int player;
 int AI;
 int maxRecursionDepth;
 
+static int compile_regex(regex_t* r, const char* regex_text){
+    int status = regcomp (r, regex_text, REG_EXTENDED);
+    if (status != 0) {
+		char error_message[MAX_ERROR_MSG];
+		regerror(status, r, error_message, MAX_ERROR_MSG);
+        printf("Regex error compiling '%s': %s\n", regex_text, error_message);
+        return 1;
+    }
+    return 0;
+}
 
 void initialize(){
-	Board_init(board);
+	Board_init((char**)board);
 	player = WHITE;
 	AI     = BLACK;
 	maxRecursionDepth = 1;
 }
 
-int readCommand(char* command){
-	return 0;
+int executeCommand(char* command){
+	command = strtok(command, "\n");
+	if (strcmp(command, "clear") == 0){
+		Board_clear((char**)board);
+		return 0;
+	}
+	if (strcmp(command, "print") == 0){
+		Board_print((char**)board);
+		return 0;
+	}
+	return 1;
 }
 
 int settings(){
@@ -32,21 +52,13 @@ int settings(){
 			printf("error reading command\n");
 			continue;
 		}
-		if (strcmp(command, "clear\n") == 0){
-			Board_clear(board);
-			continue;
-		}
-		if (strcmp(command, "print\n") == 0){
-			Board_print(board);
-			continue;
-		}
 		if (strcmp(command, "quit\n") == 0){
 			return 0;
 		}
 		if (strcmp(command, "start\n") == 0){
 			return 1;
 		}
-		int exitcode = readCommand(command);
+		int exitcode = executeCommand(command);
 	}
 }
 

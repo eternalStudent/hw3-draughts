@@ -106,6 +106,12 @@ int Board_move(char** board, char oldCh, int oldY, char newCh, int newY){
 	return -1;
 }
 
+char** Board_getPossibleBoard(char** board, struct PossibleMove* move){
+	char** possibleBoard = (char**)malloc(Board_SIZE*Board_SIZE*sizeof(char*));
+	Board_copy(possibleBoard, board);
+	return possibleBoard;
+}
+
 /*
  * Evaluates the board according to the specified scoring function.
  *
