@@ -4,7 +4,7 @@
 struct PossibleMove{
 		struct Tile* start;
 		struct LinkedList* moves;
-		char board[Board_SIZE][Board_SIZE] ;
+		char** board;
 };
 
 struct PossibleMove* PossibleMove_new(struct Tile*, struct LinkedList*, char[Board_SIZE][Board_SIZE]);

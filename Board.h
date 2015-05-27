@@ -5,17 +5,21 @@
 #define Board_EMPTY      ' '
 #define Board_SIZE       10
 
+typedef char[Board_size][Board_Size] Board;
 
-void Board_init    (char board[Board_SIZE][Board_SIZE]);
 
-void Board_clear   (char board[Board_SIZE][Board_SIZE]);
+void Board_init    (char** board);
 
-int  Board_set     (char board[Board_SIZE][Board_SIZE], char x, int y, char piece);
+void Board_clear   (char** board);
 
-int  Board_remove  (char board[Board_SIZE][Board_SIZE], char x, int y);
+void Board_copy    (char** dest, char** src)
 
-int  Board_move    (char board[Board_SIZE][Board_SIZE], char oldX, int oldY, char newX, int newY);
+int  Board_set     (char** board, char x, int y, char piece);
 
-int  Board_getScore(char board[Board_SIZE][Board_SIZE]);
+int  Board_remove  (char** board, char x, int y);
 
-void Board_print   (char board[Board_SIZE][Board_SIZE]);
+int  Board_move    (char** board, char oldX, int oldY, char newX, int newY);
+
+int  Board_getScore(char** board);
+
+void Board_print   (char** board);

@@ -1,10 +1,11 @@
 #include <stdio.h>
 #include "Board.h"
 
+
 /*
  * Populates the board in the standard way.
  */
-void Board_init(char board[Board_SIZE][Board_SIZE]){
+void Board_init(char** board){
 	for (int x = 0; x < Board_SIZE; x++){
 		for (int y = 0; y < Board_SIZE; y++){
 			if ((x + y) % 2 == 0){
@@ -25,10 +26,23 @@ void Board_init(char board[Board_SIZE][Board_SIZE]){
 /*
  * Clears the board from all pieces.
  */
-void Board_clear(char board[Board_SIZE][Board_SIZE]){
+void Board_clear(char** board){
 	for (int x = 0; x < Board_SIZE; x++){
 		for (int y = 0; y < Board_SIZE; y++){
 			board[x][y] = Board_EMPTY;
+		}
+	}
+}
+
+/*
+ * Populates a board according to another board.
+ *
+ * @params: dest - pointer to the board to be populated, src - pointer to the board according to whom dest will be populated
+ */
+void Board_copy(char** dest, char** src){
+	for (int x = 0; x < Board_SIZE; x++){
+		for (int y = 0; y < Board_SIZE; y++){
+			dest[x][y] = src[x][y];
 		}
 	}
 }
@@ -50,7 +64,7 @@ static int isInRange(int x, int y){
  * @params: (x, y) are the coordinates of the tile, piece is the piece to be put
  * @return: -1 if (x, y) is out of range, 0 otherwise
  */
-int Board_set(char board[Board_SIZE][Board_SIZE], char ch, int y, char piece){
+int Board_set(char** board, char ch, int y, char piece){
 	int x = charToInt(ch);
 	if (isInRange(x, y)){
 		board[x][y] = piece;
@@ -65,7 +79,7 @@ int Board_set(char board[Board_SIZE][Board_SIZE], char ch, int y, char piece){
  * @params: (x, y) are the coordinates of the tile in which the piece to be removed is placed
  * @return: -1 if the coordinates are out of range, 0 otherwise
  */
-int Board_remove(char board[Board_SIZE][Board_SIZE], char ch, int y){
+int Board_remove(char** board, char ch, int y){
 	int x = charToInt(ch);
 	if (isInRange(x, y)){
 		board[x][y] = Board_EMPTY;
@@ -80,7 +94,7 @@ int Board_remove(char board[Board_SIZE][Board_SIZE], char ch, int y){
  * @params: (oldX, oldY) are the coordinates of the piece to be moved. (newX, newY) are the coordinates the piece will be moved to
  * @return: -1 if any of the coordinates are out of range or the desired location is occupied, 0 otherwise
  */
-int Board_move(char board[Board_SIZE][Board_SIZE], char oldCh, int oldY, char newCh, int newY){
+int Board_move(char** board, char oldCh, int oldY, char newCh, int newY){
 	int oldX = charToInt(oldCh);
 	int newX = charToInt(newCh);
 	if (isInRange(oldX, oldY) && isInRange(newX, newY) && board[newX][newY] == Board_EMPTY){
@@ -97,7 +111,7 @@ int Board_move(char board[Board_SIZE][Board_SIZE], char oldCh, int oldY, char ne
  *
  * @return: a numeric evaluation of the board
  */
-int Board_getScore(char board[Board_SIZE][Board_SIZE]){
+int Board_getScore(char** board){
 	int score = 0;
 	for (int x = 0; x < Board_SIZE; x++){
 		for (int y = 0; y < Board_SIZE; y++){
@@ -134,7 +148,7 @@ static void printLine(){
 /*
  * Prints an ASCII representation of the board.
  */
-void Board_print(char board[Board_SIZE][Board_SIZE]){
+void Board_print(char** board){
 	printLine();
 	for (int y = Board_SIZE-1; y >= 0 ; y--){
 		printf((y < 9? " %d": "%d"), y+1);

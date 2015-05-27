@@ -66,17 +66,18 @@ Board.h:
 	define Board_BLACK_MAN
 	define Board_BLACK_KING
 	define Board_EMPTY 
-	define Board_SIZE	
+	define Board_SIZE
 
-	void Board_init(char[][])
-	void Board_clear(char[][])
-	int Board_set(char[][], char, int, char)
-	int Board_remove(char[][], char, int)
-	int Board_move(char[][], char, int, char, int)
-	struct LinkedList* Board_getPossibleMoves(char[][], int)
-	int Board_possibleBoard(char[][], char[][], struct PossibleMove*)
-	int Board_getScore(char[][]) 
-	void Board_print(char[][])
+	void Board_init(char**)
+	void Board_clear(char**)
+	void Board_copy(char**, char**)
+	int Board_set(char**, char, int, char)
+	int Board_remove(char**, char, int)
+	int Board_move(char**, char, int, char, int)
+	struct LinkedList* Board_getPossibleMoves(char**, int)
+	char** Board_getPossibleBoard(char**, struct PossibleMove*)
+	int Board_getScore(char**) 
+	void Board_print(char**)
 
 Board.c:
 	include Board.h
@@ -93,17 +94,17 @@ draughts.c:
 bestMove = minimax(Board_getPossibleMoves(board, AI), maxRecursionLevel, AI);
 
 struct PossibleMove minimax(struct PossibleMove* possibleMove, depth, player){
-	if (depth == 0 ){
+	if (depth == 0){
 		return possibleMove;
 	}
-	int extremum;
 	struct LinkedList* possibleMoves = Board_getPossibleMoves(possibleMove->board, player);
-	PossibleMoveList_newIteration(possibleMoves);
-	struct PossibleMove* currentPossibleMove = PossibleMoveList_next(possibleMoves);
-	struct possibleMove* bestMove = currentPossibleMove;
-	while (currentPossibleMove != NULL) {
-		int score = Board_getScore(minimax(Board_getPossibleMove(bestMove), !player, depth-1)); 
-		if (player == BLACK && vlaue>extremum || player == WHITE && value<extremum || isRandom() && value == extremum){
+	struct possibleMove* bestMove;
+	int extremum = 101;
+	struct Iterator* iterator = Iterator_new(possibleMoves);
+	while (Iterator_hasNext(iterator)) {
+		struct PossibleMove* currentPossibleMove = Iterator_next(iterator); 
+		int score = Board_getScore( minimax(currentPossibleMove, !player, depth-1) ); 
+		if (extremum == 101 || player == BLACK && score>extremum || player == WHITE && score<extremum || isRandom() && score == extremum){
 			extremum = value;
 			bestMove = currentPossibleMove;
 		}

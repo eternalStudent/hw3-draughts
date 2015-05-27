@@ -1,11 +1,13 @@
 #include "PossibleMove.h"
 
 /* 
- * creates a new PossibleMmove structure, consisting of the starting tile,
+ * Creates a new PossibleMmove structure, consisting of the starting tile,
  * a list of tiles that are part of the move itself, and the state of the
  * board after this particular move has been carried out. 
+ *
+ * @params: start - a pointer to the starting tile, moves - a pointer to the list of individual tile moves, board - the initial state of the board
+ * @return: NULL if any allocation errors occurred, the structure otherwise
  */
-
 struct PossibleMove* PossibleMove_new(struct Tile* start, struct LinkedList* list, char board[Board_SIZE][Board_SIZE]){
 	struct PossibleMove* move;
 	move = (struct PossibleMove*)calloc(1, sizeof(struct PossibleMove));
@@ -14,15 +16,13 @@ struct PossibleMove* PossibleMove_new(struct Tile* start, struct LinkedList* lis
 	}
 	move->start = start;
 	move->moves = list;
-	move->board = board;
+	move->board = Board_getPossibleBoard(board, move); //this will also allocate the board in memory.
 	return move;
 }
 
 /* 
- *prints an existing PossibleMmove structure in the correct format: move <x,y> to <i,j>[<k,l>...]
+ * Prints the structure in the format: "move <x,y> to <i,j>[<k,l>...]".
  */
-
-
 void PossibleMove_print(struct PossibleMove* move){
 	printf("move ");
 	Tile_print(move->start);
@@ -37,12 +37,12 @@ void PossibleMove_print(struct PossibleMove* move){
 }
 
 /* 
- *frees all memory allocations of a given PossibleMove structure
+ * Frees the structure.
  */
-
 void PossibleMove_free(void* data){
 	struct PossibleMove* move = (struct PossibleMove*) data;
 	Tile_free(move->start);
 	LinkedList_free(move->moves);
+	free(move->board);
 	free(move);
 }
