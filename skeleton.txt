@@ -74,7 +74,7 @@ Board.h:
 	void Board_copy(char**, char**)
 	int Board_set(char**, char, int, char)
 	int Board_remove(char**, char, int)
-	int Board_move(char**, char, int, char, int)
+	int Board_isPlayable(char**)
 	struct LinkedList* Board_getPossibleMoves(char**, int)
 	char** Board_getPossibleBoard(char**, struct PossibleMove*)
 	int Board_getScore(char**) 
@@ -85,32 +85,14 @@ Board.c:
 	include Board.h
 	
 	static int Board_charToInt(char)
-	static int isInRange(int, int);
+	static int isInRange(int, int)
+	static int isOnBlack(int, int)
+	static int Board_move(char**, char, int, char, int)
 
 draughts.c:
 	include Board.c
 
 	define BLACK 0
 	define WHITE 1
-
-bestMove = minimax(Board_getPossibleMoves(board, AI), maxRecursionLevel, AI);
-
-struct PossibleMove minimax(struct PossibleMove* possibleMove, depth, player){
-	if (depth == 0){
-		return possibleMove;
-	}
-	struct LinkedList* possibleMoves = Board_getPossibleMoves(possibleMove->board, player);
-	struct possibleMove* bestMove;
-	int extremum = 101;
-	struct Iterator* iterator = Iterator_new(possibleMoves);
-	while (Iterator_hasNext(iterator)) {
-		struct PossibleMove* currentPossibleMove = Iterator_next(iterator); 
-		int score = Board_getScore( minimax(currentPossibleMove, !player, depth-1) ); 
-		if (extremum == 101 || player == BLACK && score>extremum || player == WHITE && score<extremum || isRandom() && score == extremum){
-			extremum = value;
-			bestMove = currentPossibleMove;
-		}
-		currentPossibleMove = possibleMoveList_next(possibleMoves);
-	}
-	return bestPossibleMove;
-}
+	define SETTINGS 0
+	define GAME     1

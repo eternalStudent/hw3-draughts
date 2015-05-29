@@ -62,11 +62,15 @@ static int charToInt(char ch){
 	return ((int)ch)-97;
 }
 
-static int isInRange(int x, int y){
+int isInRange(int x, int y){
 	if (x >=0 && x<Board_SIZE && y>=0 && y<Board_SIZE){
 		return 1;
 	}
 	return 0;
+}
+
+static int isOnBlack(int x, int y){
+	return (x + y) % 2 == 0;
 }
 
 /*
@@ -74,11 +78,11 @@ static int isInRange(int x, int y){
  *
  * @params: (x, y) - the coordinates of the tile, 
  *          piece  - the piece to be put
- * @return: -1 if (x, y) is out of range, 0 otherwise
+ * @return: -1 if (x, y) is out of range or on a white tile, 0 otherwise
  */
 int Board_set(char** board, char ch, int y, char piece){
 	int x = charToInt(ch);
-	if (isInRange(x, y)){
+	if (isInRange(x, y) && isOnBlack(x, y)){
 		board[x][y] = piece;
 		return 0;
 	}
@@ -100,24 +104,41 @@ int Board_remove(char** board, char ch, int y){
 	return -1;
 }
 
+int Board_isPlayable(char** board){
+	int countBlack = 0;
+	int countWhite = 0;
+	for (int x = 0; x < Board_SIZE; x++){
+		for (int y = 0; y < Board_SIZE; y++){
+			if (board[x][y] == Board_BLACK_KING || board[x][y] == Board_BLACK_MAN){
+				countBlack++;
+				continue;
+			}
+			if (board[x][y] == Board_WHITE_KING || board[x][y] == Board_WHITE_MAN){
+				countWhite++;
+				continue;
+			}
+		}
+	}
+	int tooFew  = (countBlack == 0 || countWhite == 0);
+	int tooMany = (countBlack > 20 || countWhite > 20);
+	return (!tooFew && !tooMany);
+}
+
 /*
  * Moves a piece to a different tile in the board.
  *
  * @params: (oldX, oldY) - the coordinates of the piece to be moved
             (newX, newY) - the coordinates the piece will be moved to
- * @return: -1 if any of the coordinates are out of range or the desired location is occupied, 0 otherwise
+ * @return: -1 if any of the coordinates are out of range or the desired location
+ *          is occupied or the desired location is a white tile, 0 otherwise
  */
-int Board_move(char** board, char oldCh, int oldY, char newCh, int newY){
+static void Board_move(char** board, char oldCh, int oldY, char newCh, int newY){
 	int oldX = charToInt(oldCh);
 	int newX = charToInt(newCh);
-	if (!isInRange(oldX, oldY) || !isInRange(newX, newY) || board[newX][newY] != Board_EMPTY){
-		return -1;
-	}	
 	char piece = board[oldX][oldY];
 	board[oldX][oldY] = Board_EMPTY;
 	board[newX][newY] = piece;
 	//TODO complete
-	return 0;
 }
 
 char** Board_getPossibleBoard(char** board, struct PossibleMove* move){
@@ -144,19 +165,19 @@ int Board_getScore(char** board){
 		for (int y = 0; y < Board_SIZE; y++){
 			char piece = board[x][y];
 			if (piece == Board_BLACK_MAN){
-				score++;
-				continue;
-			}
-			if (piece == Board_WHITE_MAN){
 				score--;
 				continue;
 			}
+			if (piece == Board_WHITE_MAN){
+				score++;
+				continue;
+			}
 			if (piece == Board_BLACK_KING){
-				score+=3;
+				score-=3;
 				continue;
 			}
 			if (piece == Board_WHITE_KING){
-				score-=3;
+				score+=3;
 				continue;
 			}
 		}

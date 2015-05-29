@@ -17,11 +17,13 @@ void Board_clear   (char** board);
 
 void Board_copy    (char** dest, char** src);
 
+int isInRange      (int x, int y);
+
 int  Board_set     (char** board, char x, int y, char piece);
 
 int  Board_remove  (char** board, char x, int y);
 
-int  Board_move    (char** board, char oldX, int oldY, char newX, int newY);
+int  Board_isPlayable(char** board);
 
 char** Board_getPossibleBoard(char** board, struct PossibleMove* move);
 
