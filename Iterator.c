@@ -4,7 +4,7 @@
 /* 
  * Creates a new Iterator structure, enabling iteration over a LinkedList structure.
  *
- * @params: list - the list to be iterated over
+ * @params: list - a pointer to the list to be iterated over
  * @return: NULL if any allocation errors occurred, the iterator otherwise
  */
 struct Iterator* Iterator_new(struct LinkedList* list){
@@ -44,6 +44,9 @@ int Iterator_hasNext(struct Iterator* iterator){
 	return (iterator->current->next != NULL);
 }
 
+/* 
+ *Frees the iterator
+ */
 void Iterator_free(struct Iterator* iterator){
 	free(iterator);
 }

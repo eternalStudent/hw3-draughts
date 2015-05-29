@@ -55,11 +55,11 @@ PossibleMove.h:
 	void PossibleMove_free(void*)
 
 PossibleMove.c:
-	include PossibleMove.h
+	include Board.c
 
 Board.h:
 	include Iterator.c
-	include PossibleMove.c
+	include PossibleMove.h
 
 	define Board_WHITE_MAN
 	define Board_WHITE_KING
@@ -68,6 +68,7 @@ Board.h:
 	define Board_EMPTY 
 	define Board_SIZE
 
+	char** Board_new()
 	void Board_init(char**)
 	void Board_clear(char**)
 	void Board_copy(char**, char**)
@@ -78,6 +79,7 @@ Board.h:
 	char** Board_getPossibleBoard(char**, struct PossibleMove*)
 	int Board_getScore(char**) 
 	void Board_print(char**)
+	void Board_free(char** board)
 
 Board.c:
 	include Board.h

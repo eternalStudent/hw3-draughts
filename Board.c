@@ -1,6 +1,16 @@
 #include <stdio.h>
 #include "Board.h"
 
+char** Board_new(){
+	char** board = calloc(Board_SIZE, sizeof(char*));
+	if (!board){
+		return NULL;
+	}
+	for(int i = 0; i < Board_SIZE; i++){
+		board[i] = calloc(Board_SIZE, sizeof(char));
+	}
+	return board;
+}
 
 /*
  * Populates the board in the standard way.
@@ -37,7 +47,8 @@ void Board_clear(char** board){
 /*
  * Populates a board according to another board.
  *
- * @params: dest - pointer to the board to be populated, src - pointer to the board according to whom dest will be populated
+ * @params: dest - a pointer to the board to be populated, 
+ *          src  - a pointer to the board according to whom dest will be populated
  */
 void Board_copy(char** dest, char** src){
 	for (int x = 0; x < Board_SIZE; x++){
@@ -61,7 +72,8 @@ static int isInRange(int x, int y){
 /*
  * Place a piece on the board.
  *
- * @params: (x, y) are the coordinates of the tile, piece is the piece to be put
+ * @params: (x, y) - the coordinates of the tile, 
+ *          piece  - the piece to be put
  * @return: -1 if (x, y) is out of range, 0 otherwise
  */
 int Board_set(char** board, char ch, int y, char piece){
@@ -76,7 +88,7 @@ int Board_set(char** board, char ch, int y, char piece){
 /*
  * Removes a piece from the board.
  * 
- * @params: (x, y) are the coordinates of the tile in which the piece to be removed is placed
+ * @params: (x, y) - the coordinates of the tile in which the piece to be removed is placed
  * @return: -1 if the coordinates are out of range, 0 otherwise
  */
 int Board_remove(char** board, char ch, int y){
@@ -91,25 +103,34 @@ int Board_remove(char** board, char ch, int y){
 /*
  * Moves a piece to a different tile in the board.
  *
- * @params: (oldX, oldY) are the coordinates of the piece to be moved. (newX, newY) are the coordinates the piece will be moved to
+ * @params: (oldX, oldY) - the coordinates of the piece to be moved
+            (newX, newY) - the coordinates the piece will be moved to
  * @return: -1 if any of the coordinates are out of range or the desired location is occupied, 0 otherwise
  */
 int Board_move(char** board, char oldCh, int oldY, char newCh, int newY){
 	int oldX = charToInt(oldCh);
 	int newX = charToInt(newCh);
-	if (isInRange(oldX, oldY) && isInRange(newX, newY) && board[newX][newY] == Board_EMPTY){
-		char piece = board[oldX][oldY];
-		board[oldX][oldY] = Board_EMPTY;
-		board[newX][newY] = piece;
-		return 0;
-	}
-	return -1;
+	if (!isInRange(oldX, oldY) || !isInRange(newX, newY) || board[newX][newY] != Board_EMPTY){
+		return -1;
+	}	
+	char piece = board[oldX][oldY];
+	board[oldX][oldY] = Board_EMPTY;
+	board[newX][newY] = piece;
+	//TODO complete
+	return 0;
 }
 
 char** Board_getPossibleBoard(char** board, struct PossibleMove* move){
-	char** possibleBoard = (char**)malloc(Board_SIZE*Board_SIZE*sizeof(char*));
+	char** possibleBoard = Board_new();
 	Board_copy(possibleBoard, board);
+	//TODO complete
 	return possibleBoard;
+}
+
+struct LinkedList* Board_getPossibleMoves(char** board, int player){
+	struct LinkedList* list = LinkedList_new(&PossibleMove_free);
+	//TODO complete
+	return list;
 }
 
 /*
@@ -169,4 +190,11 @@ void Board_print(char** board){
 		printf(" %c  ", (char)('a' + y));
 	}
 	printf("\n");
+}
+
+void Board_free(char** board){
+	for(int i = 0; i < Board_SIZE; i++){
+		free(board[i]);
+	}
+	free(board);
 }

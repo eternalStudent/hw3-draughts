@@ -1,4 +1,4 @@
-#include "Board.c"
+#include "PossibleMove.c"
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -8,24 +8,26 @@
 #define WHITE 1
 #define MAX_ERROR_MSG 0x1000
 
-char board[Board_SIZE][Board_SIZE];
+char** board;
 int player;
 int AI;
 int maxRecursionDepth;
 
+
 static int compile_regex(regex_t* r, const char* regex_text){
     int status = regcomp (r, regex_text, REG_EXTENDED);
-    if (status != 0) {
-		char error_message[MAX_ERROR_MSG];
-		regerror(status, r, error_message, MAX_ERROR_MSG);
-        printf("Regex error compiling '%s': %s\n", regex_text, error_message);
-        return 1;
-    }
-    return 0;
+	if (status == 0){
+		return 0;
+	}
+    char error_message[MAX_ERROR_MSG];
+	regerror(status, r, error_message, MAX_ERROR_MSG);
+    printf("Regex error compiling '%s': %s\n", regex_text, error_message);
+    return 1;
 }
 
 void initialize(){
-	Board_init((char**)board);
+	board = Board_new();
+	Board_init(board);
 	player = WHITE;
 	AI     = BLACK;
 	maxRecursionDepth = 1;
@@ -34,11 +36,11 @@ void initialize(){
 int executeCommand(char* command){
 	command = strtok(command, "\n");
 	if (strcmp(command, "clear") == 0){
-		Board_clear((char**)board);
+		Board_clear(board);
 		return 0;
 	}
 	if (strcmp(command, "print") == 0){
-		Board_print((char**)board);
+		Board_print(board);
 		return 0;
 	}
 	return 1;
@@ -73,6 +75,7 @@ int main(){
 	if (start){
 		game();
 	}
+	free(board);
 	return 0;
 }
 

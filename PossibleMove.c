@@ -1,11 +1,13 @@
-#include "PossibleMove.h"
+#include "Board.c"
 
 /* 
- * Creates a new PossibleMmove structure, consisting of the starting tile,
+ * Creates a new PossibleMove structure, consisting of the starting tile,
  * a list of tiles that are part of the move itself, and the state of the
  * board after this particular move has been carried out. 
  *
- * @params: start - a pointer to the starting tile, moves - a pointer to the list of individual tile moves, board - the board after the move.
+ * @params: start - a pointer to the starting tile, 
+            moves - a pointer to the list of individual tile moves, 
+ *          board - the board before the move
  * @return: NULL if any allocation errors occurred, the structure otherwise
  */
 struct PossibleMove* PossibleMove_new(struct Tile* start, struct LinkedList* list, char** board){
@@ -16,7 +18,7 @@ struct PossibleMove* PossibleMove_new(struct Tile* start, struct LinkedList* lis
 	}
 	move->start = start;
 	move->moves = list;
-	move->board = board;
+	move->board = Board_getPossibleBoard(board, move);
 	return move;
 }
 
@@ -43,6 +45,6 @@ void PossibleMove_free(void* data){
 	struct PossibleMove* move = (struct PossibleMove*) data;
 	Tile_free(move->start);
 	LinkedList_free(move->moves);
-	free(move->board);
+	Board_free(move->board);
 	free(move);
 }
