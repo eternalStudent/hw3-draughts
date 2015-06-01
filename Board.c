@@ -59,7 +59,7 @@ void Board_copy(char** dest, char** src){
 }
 
 static int charToInt(char ch){
-	return ((int)ch)-97;
+	return ((int)ch)-96;
 }
 
 int isInRange(int x, int y){
@@ -83,7 +83,7 @@ static int isOnBlack(int x, int y){
 int Board_set(char** board, char ch, int y, char piece){
 	int x = charToInt(ch);
 	if (isInRange(x, y) && isOnBlack(x, y)){
-		board[x][y] = piece;
+		board[x-1][y-1] = piece;
 		return 0;
 	}
 	return -1;
@@ -98,7 +98,7 @@ int Board_set(char** board, char ch, int y, char piece){
 int Board_remove(char** board, char ch, int y){
 	int x = charToInt(ch);
 	if (isInRange(x, y)){
-		board[x][y] = Board_EMPTY;
+		board[x-1][y-1] = Board_EMPTY;
 		return 0;
 	}
 	return -1;
@@ -128,7 +128,7 @@ int Board_isPlayable(char** board){
  * Moves a piece to a different tile in the board.
  *
  * @params: (oldX, oldY) - the coordinates of the piece to be moved
-            (newX, newY) - the coordinates the piece will be moved to
+ *          (newX, newY) - the coordinates the piece will be moved to
  * @return: -1 if any of the coordinates are out of range or the desired location
  *          is occupied or the desired location is a white tile, 0 otherwise
  */
@@ -138,7 +138,36 @@ static void Board_move(char** board, char oldCh, int oldY, char newCh, int newY)
 	char piece = board[oldX][oldY];
 	board[oldX][oldY] = Board_EMPTY;
 	board[newX][newY] = piece;
-	//TODO complete
+	
+	/* When a MAN reaches the furthest row from where it started it becomes a KING */
+	if (piece == Board_BLACK_MAN && newY == 1) {
+		board[newX][newY] = Board_BLACK_KING;
+	}
+	if (piece == Board_WHITE_MAN && newY == Board_SIZE){
+		board[newX][newY] = Board_WHITE_KING;
+	}
+
+	/* If the move is a jump, all jumped pieces must be removed from the board*/
+	if (abs(newX-oldX)>1 && abs(newY-oldY)>1){
+		int tempX = oldX;
+		int tempY = oldY;
+		
+		while ((tempX != newX) && (tempY != newY)){
+			board[tempX][tempY] = Board_EMPTY;
+			if(newX-oldX>0){
+				tempX++;
+			}
+			else{
+				tempX--;
+			}
+			if(newY-oldY>0){
+				tempY++;
+			}
+			else{
+				tempY--;
+			}
+		}
+	}
 }
 
 char** Board_getPossibleBoard(char** board, struct PossibleMove* move){
