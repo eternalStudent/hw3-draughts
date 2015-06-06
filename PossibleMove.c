@@ -10,14 +10,14 @@
  *          board - the board before the move
  * @return: NULL if any allocation errors occurred, the structure otherwise
  */
-struct PossibleMove* PossibleMove_new(struct Tile* start, struct LinkedList* list, char** board){
+struct PossibleMove* PossibleMove_new(struct Tile* start, struct LinkedList* moveList, char** board){
 	struct PossibleMove* move;
 	move = (struct PossibleMove*)calloc(1, sizeof(struct PossibleMove));
 	if (!move){
 		return NULL;
-	}
+	}	
 	move->start = start;
-	move->moves = list;
+	move->moves = moveList;
 	move->board = Board_getPossibleBoard(board, move);
 	return move;
 }

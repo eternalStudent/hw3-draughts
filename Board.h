@@ -29,6 +29,10 @@ char** Board_getPossibleBoard(char** board, struct PossibleMove* move);
 
 struct LinkedList* Board_getPossibleMoves(char** board, int player);
 
+struct LinkedList* getPossibleJumps (char** currentBoard, int player);
+
+struct LinkedList* getPossibleSingleMoves (char** currentBoard, int player);
+
 int  Board_getScore(char** board);
 
 void Board_print   (char** board);

@@ -60,6 +60,17 @@ int LinkedList_add(struct LinkedList* list, void* data){
 }
 
 /* 
+ * Concatenates two separate Linked Lists.
+ */
+int LinkedList_concatenate(struct LinkedList* firstList, struct LinkedList* secondList){
+	firstList->last->next = secondList->first;
+	firstList->last = secondList->last;
+	firstList->length = LinkedList_length(firstList) + LinkedList_length(secondList);
+	free(secondList); /* second list structure no longer relevant */
+	return 0;
+}
+
+/* 
  * @return: the number of elements in the list
  */
 int LinkedList_length(struct LinkedList* list){

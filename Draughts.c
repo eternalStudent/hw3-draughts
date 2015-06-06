@@ -47,13 +47,12 @@ void initialize(){
 //TODO: add game state regex functions
 
 /* 
- * Various regex functions for executing the correct command as input by the user.
+ * Sets the minimax depth according to input from the user.
  *
  * @params: the input command string
- 
- * @return: 1 if the command didn't match, 0 if the command matched and was executed successfully, the appropriate error code otherwise 
+ *
+ * @return: 1 if the command didn't match, 0 if the command matched and was executed successfully, 11 if the user input illegal minimax depth
  */ 
-
 int setMinimaxDepth (char* str){
 	regex_t r; 	
 	regmatch_t matches[2];
@@ -83,6 +82,14 @@ int setMinimaxDepth (char* str){
 	return exitcode;
 }
 
+
+/* 
+ * Sets the user's color according to input from the user.
+ *
+ * @params: the input command string
+ *
+ * @return: 1 if the command didn't match, 0 if the command matched and was executed successfully
+ */ 
 int setUserColor (char* str){
 	regex_t r; 	
 	regmatch_t matches[2];
@@ -112,6 +119,13 @@ int setUserColor (char* str){
 	return exitcode;
 }
 
+/* 
+ * Removes a piece currently on the board according to input from the user.
+ *
+ * @params: the input command string
+ *
+ * @return: 1 if the command didn't match, 0 if the command matched and was executed successfully, 12 if the user input an illegal position on the board 
+ */ 
 int removePiece(char* str){
 	regex_t r; 	
 	regmatch_t matches[3];
@@ -151,6 +165,13 @@ int removePiece(char* str){
 	return exitcode;
 }
 
+/* 
+ * Places a piece on the board according to input from the user.
+ *
+ * @params: the input command string
+ *
+ * @return: 1 if the command didn't match, 0 if the command matched and was executed successfully, 12 if the user input an illegal position on the board
+ */ 
 int setPiece(char* str){
 	regex_t r; 	
 	regmatch_t matches[5];
@@ -221,6 +242,113 @@ int setPiece(char* str){
 	return exitcode;
 }
 
+/* 
+ * Performs a move on the board according to input from the user. The move can consist of a single step, or several steps.
+ *
+ * @params: the input command string
+ *
+ * @return: 1 if the command didn't match, 0 if the command matched and was executed successfully, 12 if the user input an illegal position on the board,
+ * 14 if the initial tile doesn't contain one of the player's pieces, 15 if the move itself is illegal, 17 if the move was carried out successfully
+ *
+ */ 
+int movePiece(char* str){  /* still incomplete */
+	regex_t r; 	
+	regmatch_t matches[5];
+	int exitcode = 1; /*did not match*/
+	char* pattern = "^move\\s+<([a-z]),([0-9]+)>\\s+to\\s*<([a-z]),([0-9]+)>";
+	compile_regex(&r, pattern);
+	if (regexec(&r, str, 5, matches, 0) == 0){
+		struct LinkedList* positionList = LinkedList_new(&Tile_free);
+		char* token, *firstColumnAsString, *firstRowAsString, *secondColumnAsString, *secondRowAsString, *ptr, *rest;
+		char firstColumn, secondColumn;
+		int firstRow, secondRow;
+		
+		while(1){
+			int start = matches[1].rm_so;
+			int range = matches[1].rm_eo-start;
+			firstColumnAsString = getSubstring(str, start, range);
+			firstColumn = *firstColumnAsString;
+			int firstColumnAsInt = (int)firstColumn-96;
+				
+			start = matches[2].rm_so;
+			range = matches[2].rm_eo-start;
+			firstRowAsString = getSubstring(str, start, range);
+			firstRow = strtol(firstRowAsString, &ptr, 10);
+			struct Tile* startPosition = Tile_new(firstColumn,firstRow);
+			LinkedList_add(positionList, startPosition);
+		
+			start = matches[3].rm_so;
+			range = matches[3].rm_eo-start;
+			secondColumnAsString = getSubstring(str, start, range);
+			secondColumn = *secondColumnAsString;
+			int secondColumnAsInt = (int)secondColumn-96;
+		
+			start = matches[4].rm_so;
+			range = matches[4].rm_eo-start;
+			secondRowAsString = getSubstring(str, start, range);
+			secondRow = strtol(secondRowAsString, &ptr, 10);
+			
+			struct Tile* secondPosition = Tile_new(secondColumn,secondRow);
+			LinkedList_add(positionList, secondPosition);
+	
+			start = matches[4].rm_eo+1;
+			range = strlen(str)-start;
+			rest = getSubstring(str, start,range);
+			token = strtok(rest, "><");
+			
+			/* handling multi-stage moves */
+			
+			if (strlen(rest)){
+				while (token != NULL){	
+					char newColumn = token[0];
+					int newRow = (int)token[2] - 48;
+					struct Tile* nextPosition = Tile_new(newColumn,newRow);
+					LinkedList_add(positionList,nextPosition);
+					token = strtok(NULL, "><");
+				}
+			}
+
+			/* check that all positions are valid */
+			
+			struct Iterator* iterator = Iterator_new(positionList);
+			while (Iterator_hasNext(iterator)){
+				struct Tile* tile = (struct Tile*)Iterator_next(iterator);
+				char column = tile -> x;
+				int row = tile -> y;
+				int columnAsInt = (int)column - 96;
+				if((row < 0) || (row > Board_SIZE) || (columnAsInt < 0) || (columnAsInt > Board_SIZE) || ((row + columnAsInt) % 2 != 0)){
+					exitcode = 12; /* invalid position on the board */
+					Iterator_free(iterator);
+					break; /* need to break out of TWO loops. How? */
+				}
+			}
+			
+			/* check that first position contains one of the player's pieces */
+			
+			if (player == BLACK){
+				if (board[(int)firstColumn-96][firstRow-1] != Board_BLACK_KING || board[(int)firstColumn-96][firstRow-1] != Board_BLACK_MAN){
+					exitcode = 14;
+					break;
+				}
+			}
+			else{
+				if (board[(int)firstColumn-96][firstRow-1] != Board_WHITE_KING || board[(int)firstColumn-96][firstRow-1] != Board_WHITE_MAN){
+					exitcode = 14;
+					break;
+				}
+			}
+			
+			//TODO: check if move is legal
+			//TODO: perform move
+		
+			break;
+		}
+		
+	}
+	regfree(&r);
+	return exitcode;
+}
+
 int executeCommand(char* command){
 	int error;
 	command = strtok(command, "\n");
@@ -230,7 +358,6 @@ int executeCommand(char* command){
 			return 0;
 		}
 		if (strcmp(command, "print") == 0){
-			printf("matched print\n");
 			Board_print(board);
 			return 0;
 		}
@@ -259,23 +386,49 @@ int executeCommand(char* command){
 		}
 	}
 	else{
-	//TODO: complete game state functions
+		if (strcmp(command, "get_moves") == 0){
+			struct LinkedList* possibleMoves = Board_getPossibleMoves(board, player);
+			struct Iterator* iterator = Iterator_new(possibleMoves);
+			while (Iterator_hasNext(iterator)){
+				struct PossibleMove* move = Iterator_next(iterator);
+				PossibleMove_print(move);
+			}
+			Iterator_free(iterator);
+			LinkedList_free(possibleMoves); 
+			return 0;
+		}
+		
+		error = movePiece(command);
+		if(error != 1){
+			return error;
+		}
 	}
 	return -2;
 }
 
 void printError(int error){
-	if (error == -2){
-		printf("Illegal command, please try again\n");
-	}
-	if (error == 11){
-		printf("Wrong value for minimax depth. The value should be between 1 to 6\n");
-	}
-	if (error == 12){
-		printf("Invalid position on the board\n");
-	}
-	if (error == 13){
-		printf("Wrong board initialization\n");
+	switch(error){
+		case(-2):
+			printf("Illegal command, please try again\n");
+			break;
+		case(11):
+			printf("Wrong value for minimax depth. The value should be between 1 to 6\n");
+			break;
+		case(12):
+			printf("Invalid position on the board\n");
+			break;
+		case(13):
+			printf("Wrong board initialization\n");
+			break;
+		case(14):
+			printf("The specified position does not contain your piece\n");
+			break;
+		case(15):
+			printf("Illegal move\n");
+			break;
+		default:
+			printf("Illegal command, please try again\n");
+			break;
 	}
 }
 
