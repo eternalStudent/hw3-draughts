@@ -10,16 +10,41 @@
  *          board - the board before the move
  * @return: NULL if any allocation errors occurred, the structure otherwise
  */
-struct PossibleMove* PossibleMove_new(struct Tile* start, struct LinkedList* moveList, char** board){
+struct PossibleMove* PossibleMove_new(int x, int y, struct LinkedList* moveList, char** board){
 	struct PossibleMove* move;
 	move = (struct PossibleMove*)calloc(1, sizeof(struct PossibleMove));
 	if (!move){
 		return NULL;
 	}	
-	move->start = start;
+	move->start = Tile_new(x, y);
+	if (!(move->start)){
+		free(move);
+		return NULL;
+	}
 	move->moves = moveList;
 	move->board = Board_getPossibleBoard(board, move);
 	return move;
+}
+
+int PossibleMove_equals(struct PossibleMove* this, struct PossibleMove* other){
+	int exitcode = 1;
+	int tile_equals = Tile_equals(this->start, other->start);
+	if (!tile_equals || LinkedList_length(this->moves) != LinkedList_length(other->moves)){
+		return 0;
+	}
+	struct Iterator* it1 = Iterator_new(this->moves);
+	struct Iterator* it2 = Iterator_new(other->moves);
+	while (Iterator_hasNext(it1)){
+		struct Tile* curr1 = (struct Tile*)Iterator_next(it1);
+		struct Tile* curr2 = (struct Tile*)Iterator_next(it2);
+		if (!Tile_equals(curr1, curr2)){
+			exitcode = 0;
+			break;
+		}	
+	}
+	Iterator_free(it1);
+	Iterator_free(it2);
+	return exitcode;
 }
 
 /* 

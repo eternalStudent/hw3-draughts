@@ -1,11 +1,9 @@
-#include "PossibleMove.c"
+#include "PossibleMoveList.c"
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 #include <regex.h>
 
-#define BLACK 0
-#define WHITE 1
 #define MAX_ERROR_MSG 0x1000
 #define SETTINGS 0
 #define GAME     1
@@ -29,14 +27,19 @@ static int compile_regex(regex_t* r, const char* regex_text){
     return 1;
 }
 
-char* getSubstring(char* str, int i, int range){
-	char* substring = calloc(range+1, sizeof(char));
-	strncpy(substring, str+i, range);
-	return substring;
+int allocationFailed(void* ptr){
+	if (ptr == NULL){
+		fprintf(stderr, "Error: standard function calloc has failed\n");
+		return 1;
+	}
+	return 0;
 }
 
 void initialize(){
 	board = Board_new();
+	if (allocationFailed(board)){
+		exit(0);
+	}
 	Board_init(board);
 	player = WHITE;
 	AI     = BLACK;
@@ -44,308 +47,223 @@ void initialize(){
 	state = SETTINGS;
 }
 
-//TODO: add game state regex functions
-
 /* 
  * Sets the minimax depth according to input from the user.
  *
  * @params: the input command string
- *
- * @return: 1 if the command didn't match, 0 if the command matched and was executed successfully, 11 if the user input illegal minimax depth
+ * @return: 1 if the command didn't match, 
+ *          0 if the command matched and was executed successfully, 
+ *          11 if the user input illegal minimax depth
  */ 
 int setMinimaxDepth (char* str){
 	regex_t r; 	
 	regmatch_t matches[2];
-	int exitcode = 1; /*did not match*/
 	char* pattern = "^minimax_depth\\s+(-?[0-9]+)$";
+	int depth;
+	char* depthAsString;
 	compile_regex(&r, pattern);
-	if (regexec(&r, str, 2, matches, 0) == 0){
-		int depth;
-		char* depthAsString;
-		char* ptr;
-		while(1){
-			int start = matches[1].rm_so;
-			int range = matches[1].rm_eo-start;
-			depthAsString = getSubstring(str, start, range);
-			depth = strtol(depthAsString, &ptr, 10);
-			if(depth < 1 || depth > 6){
-				exitcode = 11; /* Error: illegal minimax depth */
-				break;
-			}
-			maxRecursionDepth = depth;
-			exitcode = 0; /* Recursion depth set successfully */
-			break;
-		}
-		free(depthAsString);
+	if (regexec(&r, str, 2, matches, 0) != 0){
+		regfree(&r);
+		return 1;
 	}
-	regfree(&r);
-	return exitcode;
+	int start = matches[1].rm_so;
+	depth = strtol(str+start, NULL, 10);
+	if(depth < 1 || depth > 6){
+		regfree(&r);
+		return 11;
+	}	
+	maxRecursionDepth = depth;
+	return 0;
 }
-
 
 /* 
  * Sets the user's color according to input from the user.
  *
- * @params: the input command string
- *
+ * @params: the input command string*
  * @return: 1 if the command didn't match, 0 if the command matched and was executed successfully
  */ 
 int setUserColor (char* str){
 	regex_t r; 	
 	regmatch_t matches[2];
-	int exitcode = 1; /*did not match*/
-	char* pattern = "^user_color\\s+(black|white)\\s*$";
+	char* pattern = "^user_color\\s+((black)|(white))\\s*$";
 	compile_regex(&r, pattern);
-	if (regexec(&r, str, 2, matches, 0) == 0){
-		char* color;
-		while(1){
-			int start = matches[1].rm_so;
-			int range = matches[1].rm_eo-start;
-			color = getSubstring(str, start, range);
-			if(strcmp(color, "black") == 0){
-				player = BLACK;
-				exitcode = 0; /* Player's colour set successfully */
-				break;
-			}
-			else if(strcmp(color, "white") == 0){
-				player = WHITE;
-				exitcode = 0; /* Player's colour set successfully */
-				break;
-			}		
-		}
-		free(color);
+	if (regexec(&r, str, 2, matches, 0) != 0){
+		regfree(&r);
+		return 1;
 	}
+	
+	int start = matches[1].rm_so;
+	if(str[start] == 'b'){
+		player = BLACK;
+		regfree(&r);
+		return 0;
+	}
+	player = WHITE;
 	regfree(&r);
-	return exitcode;
+	return 0;
+}
+
+void getPosition(char* str, regmatch_t matches[], int* x, int* y){
+	int start = matches[1].rm_so;
+	char column = str[start];
+	*x = (int)column-96;
+	
+	start = matches[2].rm_so;
+	*y = strtol(str+start, NULL, 10);
 }
 
 /* 
  * Removes a piece currently on the board according to input from the user.
  *
  * @params: the input command string
- *
- * @return: 1 if the command didn't match, 0 if the command matched and was executed successfully, 12 if the user input an illegal position on the board 
+ * @return: 01 if the command didn't match, 
+ *          00 if the command matched and was executed successfully, 
+ *          12 if the user input an illegal position on the board 
  */ 
 int removePiece(char* str){
 	regex_t r; 	
 	regmatch_t matches[3];
-	int exitcode = 1; /*did not match*/
 	char* pattern = "^rm\\s+<([a-z]),([0-9]+)>\\s*$";
 	compile_regex(&r, pattern);
-	if (regexec(&r, str, 3, matches, 0) == 0){
-		char* columnAsString;
-		char column;
-		char* rowAsString;
-		int row;
-		char* ptr;	
-		while(1){
-			int start = matches[1].rm_so;
-			int range = matches[1].rm_eo-start;
-			columnAsString = getSubstring(str, start, range);
-			column = *columnAsString;
-			int columnAsInt = (int)column-96;
-			
-			start = matches[2].rm_so;
-			range = matches[2].rm_eo-start;
-			rowAsString = getSubstring(str, start, range);
-			row = strtol(rowAsString, &ptr, 10);
-			
-			if((row < 0) || (row > Board_SIZE) || (columnAsInt < 0) || (columnAsInt > Board_SIZE) || ((row + columnAsInt) % 2 != 0)){
-				exitcode = 12; /* invalid position on the board */
-				break;
-			}
-			Board_remove(board, column, row);
-			exitcode = 0;
-			break;
-		}
-		free(columnAsString);
-		free(rowAsString);
+	if (regexec(&r, str, 3, matches, 0) != 0){
+		regfree(&r);
+		return 1;
 	}
+	
+	int x, y;
+	getPosition(str, matches, &x, &y);
+	if(!Board_isValidPosition(board, x, y) || Board_isEmpty(board, x, y)){
+		regfree(&r);
+		return 12; 
+	}
+	board[x-1][y-1] = Board_EMPTY;
 	regfree(&r);
-	return exitcode;
+	return 0;
+}
+
+char getPiece(char* str, regmatch_t matches[]){
+	char piece;
+	char color = str[matches[3].rm_so];
+	char rank  = str[matches[6].rm_so];
+	
+	if(color == 'w'){
+		if(rank == 'm'){
+			piece = Board_WHITE_MAN;
+		}
+		else{
+			piece = Board_WHITE_KING;
+		}
+	}
+	else{
+		if(rank == 'm'){
+			piece = Board_BLACK_MAN;
+		}
+		else{
+			piece = Board_BLACK_KING;
+		}
+	}
+	return piece;
 }
 
 /* 
  * Places a piece on the board according to input from the user.
  *
  * @params: the input command string
- *
- * @return: 1 if the command didn't match, 0 if the command matched and was executed successfully, 12 if the user input an illegal position on the board
+ * @return: 01 if the command didn't match, 
+ *          00 if the command matched and was executed successfully, 
+ *          12 if the user input an illegal position on the board
  */ 
 int setPiece(char* str){
 	regex_t r; 	
-	regmatch_t matches[5];
-	int exitcode = 1; /*did not match*/
-	char* pattern = "^set\\s+<([a-z]),([0-9]+)>\\s*(white|black)\\s*(m|k)\\s*$";
+	regmatch_t matches[7];
+	char* pattern = "^set\\s+<([a-z]),([0-9]+)>\\s*((white)|(black))\\s*(m|k)\\s*$";
 	compile_regex(&r, pattern);
-	if (regexec(&r, str, 5, matches, 0) == 0){
-		char* columnAsString;
-		char column;
-		char* rowAsString;
-		int row;
-		char* ptr;
-		char piece;
-		char* pieceColor;
-		char* pieceRank;
-		while(1){
-			int start = matches[1].rm_so;
-			int range = matches[1].rm_eo-start;
-			columnAsString = getSubstring(str, start, range);
-			column = *columnAsString;
-			int columnAsInt = (int)column-96;
-			
-			start = matches[2].rm_so;
-			range = matches[2].rm_eo-start;
-			rowAsString = getSubstring(str, start, range);
-			row = strtol(rowAsString, &ptr, 10);
-			
-			start = matches[3].rm_so;
-			range = matches[3].rm_eo-start;
-			pieceColor = getSubstring(str, start, range); 
-			
-			start = matches[4].rm_so;
-			range = matches[4].rm_eo-start;
-			pieceRank = getSubstring(str, start, range);
-			
-			
-			if(strcmp(pieceColor,"white") == 0){
-				if(strcmp(pieceRank,"m") == 0){
-					piece = Board_WHITE_MAN;
-				}
-				else{
-					piece = Board_WHITE_KING;
-				}
-			}
-			else{
-				if(strcmp(pieceRank,"m") == 0){
-					piece = Board_BLACK_MAN;
-				}
-				else{
-					piece = Board_BLACK_KING;
-				}
-			}		
-			
-			if((row < 0) || (row > Board_SIZE) || (columnAsInt < 0) || (columnAsInt > Board_SIZE) || ((row + columnAsInt) % 2 != 0)){
-				exitcode = 12; /* invalid position on the board */
-				break;
-			}	
-			Board_set(board, column, row, piece);
-			exitcode = 0; /* piece set successfully */
-			break;
-		}
-		free(columnAsString);
-		free(rowAsString);
-		free(pieceColor);
-		free(pieceRank);
+	if (regexec(&r, str, 7, matches, 0) != 0){
+		regfree(&r);
+		return 1;
 	}
+	
+	int x, y;
+	getPosition(str, matches, &x, &y);
+	if (!Board_isValidPosition(board, x, y) || !Board_isEmpty(board, x, y)){
+		regfree(&r);
+		return 12;
+	}
+	
+	char piece = getPiece(str, matches);
+	board[x-1][y-1] = piece;
 	regfree(&r);
-	return exitcode;
+	return 0;
 }
 
 /* 
- * Performs a move on the board according to input from the user. The move can consist of a single step, or several steps.
+ * Performs a move on the board according to input from the user.
+ * The move can consist of a single step, or several steps.
  *
  * @params: the input command string
- *
- * @return: 1 if the command didn't match, 0 if the command matched and was executed successfully, 12 if the user input an illegal position on the board,
- * 14 if the initial tile doesn't contain one of the player's pieces, 15 if the move itself is illegal, 17 if the move was carried out successfully
- *
+ * @return: 01 if the command didn't match,  
+ *          12 if the user input an illegal position on the board,
+ *          14 if the initial tile doesn't contain one of the player's pieces, 
+ *          15 if the move itself is illegal, 
+ *          17 if the move was carried out successfully
+ *          21 if any allocation errors occurred
  */ 
-int movePiece(char* str){  /* still incomplete */
+int movePiece(char* str){
 	regex_t r; 	
 	regmatch_t matches[5];
-	int exitcode = 1; /*did not match*/
-	char* pattern = "^move\\s+<([a-z]),([0-9]+)>\\s+to\\s*<([a-z]),([0-9]+)>";
+	int exitcode;
+	char* pattern = "^move\\s+<([a-z]),([0-9]+)>\\s+to\\s*((<([a-z]),([0-9]+)>)+)";
 	compile_regex(&r, pattern);
-	if (regexec(&r, str, 5, matches, 0) == 0){
-		struct LinkedList* positionList = LinkedList_new(&Tile_free);
-		char* token, *firstColumnAsString, *firstRowAsString, *secondColumnAsString, *secondRowAsString, *ptr, *rest;
-		char firstColumn, secondColumn;
-		int firstRow, secondRow;
+	struct PossibleMove* possibleMove = NULL;
+	struct LinkedList* allPossibleMoves = NULL;	
+	while(1){
+		if (regexec(&r, str, 5, matches, 0) != 0){
+			exitcode = 1;
+			break;
+		}	
 		
-		while(1){
-			int start = matches[1].rm_so;
-			int range = matches[1].rm_eo-start;
-			firstColumnAsString = getSubstring(str, start, range);
-			firstColumn = *firstColumnAsString;
-			int firstColumnAsInt = (int)firstColumn-96;
-				
-			start = matches[2].rm_so;
-			range = matches[2].rm_eo-start;
-			firstRowAsString = getSubstring(str, start, range);
-			firstRow = strtol(firstRowAsString, &ptr, 10);
-			struct Tile* startPosition = Tile_new(firstColumn,firstRow);
-			LinkedList_add(positionList, startPosition);
-		
-			start = matches[3].rm_so;
-			range = matches[3].rm_eo-start;
-			secondColumnAsString = getSubstring(str, start, range);
-			secondColumn = *secondColumnAsString;
-			int secondColumnAsInt = (int)secondColumn-96;
-		
-			start = matches[4].rm_so;
-			range = matches[4].rm_eo-start;
-			secondRowAsString = getSubstring(str, start, range);
-			secondRow = strtol(secondRowAsString, &ptr, 10);
-			
-			struct Tile* secondPosition = Tile_new(secondColumn,secondRow);
-			LinkedList_add(positionList, secondPosition);
-	
-			start = matches[4].rm_eo+1;
-			range = strlen(str)-start;
-			rest = getSubstring(str, start,range);
-			token = strtok(rest, "><");
-			
-			/* handling multi-stage moves */
-			
-			if (strlen(rest)){
-				while (token != NULL){	
-					char newColumn = token[0];
-					int newRow = (int)token[2] - 48;
-					struct Tile* nextPosition = Tile_new(newColumn,newRow);
-					LinkedList_add(positionList,nextPosition);
-					token = strtok(NULL, "><");
-				}
-			}
-
-			/* check that all positions are valid */
-			
-			struct Iterator* iterator = Iterator_new(positionList);
-			while (Iterator_hasNext(iterator)){
-				struct Tile* tile = (struct Tile*)Iterator_next(iterator);
-				char column = tile -> x;
-				int row = tile -> y;
-				int columnAsInt = (int)column - 96;
-				if((row < 0) || (row > Board_SIZE) || (columnAsInt < 0) || (columnAsInt > Board_SIZE) || ((row + columnAsInt) % 2 != 0)){
-					exitcode = 12; /* invalid position on the board */
-					Iterator_free(iterator);
-					break; /* need to break out of TWO loops. How? */
-				}
-			}
-			
-			/* check that first position contains one of the player's pieces */
-			
-			if (player == BLACK){
-				if (board[(int)firstColumn-96][firstRow-1] != Board_BLACK_KING || board[(int)firstColumn-96][firstRow-1] != Board_BLACK_MAN){
-					exitcode = 14;
-					break;
-				}
-			}
-			else{
-				if (board[(int)firstColumn-96][firstRow-1] != Board_WHITE_KING || board[(int)firstColumn-96][firstRow-1] != Board_WHITE_MAN){
-					exitcode = 14;
-					break;
-				}
-			}
-			
-			//TODO: check if move is legal
-			//TODO: perform move
-		
+		//starting position
+		int x, y;
+		getPosition(str, matches, &x, &y);
+		if (!Board_isValidPosition(board, x, y)){
+			exitcode = 12;
+			break;
+		}
+		if (!Board_isPieceInSpecifiedColor(board, x, y, player)){
+			exitcode = 14;
 			break;
 		}
 		
+		//destination positions
+		struct LinkedList* moves = LinkedList_new(&Tile_free);
+		if (allocationFailed(moves)){
+			exitcode = 21;
+			break;
+		}
+		
+		//TODO: iterate over tile and check whether they are legal and add them to moves
+			
+		possibleMove = PossibleMove_new(x, y, moves, board);
+		allPossibleMoves = Board_getPossibleMoves(board, player);
+		if (allocationFailed(possibleMove) || allocationFailed(allPossibleMoves)){
+			exitcode = 21;
+			break;
+		}
+		if (!PossibleMoveList_contains(allPossibleMoves, possibleMove)){
+			exitcode = 15;
+			break;
+		}
+		board = Board_getPossibleBoard(board, possibleMove);
+		exitcode = 17;
+		break;
 	}
 	regfree(&r);
+	if (allPossibleMoves != NULL){
+		PossibleMoveList_free(allPossibleMoves);
+	}
+	if (possibleMove != NULL){
+		PossibleMove_free(possibleMove);
+	}	
 	return exitcode;
 }
 
@@ -388,12 +306,7 @@ int executeCommand(char* command){
 	else{
 		if (strcmp(command, "get_moves") == 0){
 			struct LinkedList* possibleMoves = Board_getPossibleMoves(board, player);
-			struct Iterator* iterator = Iterator_new(possibleMoves);
-			while (Iterator_hasNext(iterator)){
-				struct PossibleMove* move = Iterator_next(iterator);
-				PossibleMove_print(move);
-			}
-			Iterator_free(iterator);
+			PossibleMoveList_print(possibleMoves);
 			LinkedList_free(possibleMoves); 
 			return 0;
 		}
@@ -426,6 +339,9 @@ void printError(int error){
 		case(15):
 			printf("Illegal move\n");
 			break;
+		case(21):
+			Board_free(board);
+			exit(0);
 		default:
 			printf("Illegal command, please try again\n");
 			break;
@@ -455,6 +371,7 @@ char** minimax(char** board, int depth, int color){
 			bestPossibleMove = currentPossibleMove;
 		}
 	}
+	Iterator_free(iterator);
 	return bestPossibleMove->board;
 }
 

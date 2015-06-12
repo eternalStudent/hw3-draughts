@@ -1,6 +1,7 @@
 #include "Tile.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include <regex.h>
 
 /*
  * Creates a new Tile structure
@@ -8,15 +9,20 @@
  * @params: (x, y) - the coordinates of the tile
  * @return: NULL if any allocation errors occurred, the Tile otherwise
  */
-struct Tile* Tile_new(char x, int y){
+
+struct Tile* Tile_new(int x, int y){
 	struct Tile* tile;
 	tile = (struct Tile*)calloc(1, sizeof(struct Tile));
 	if (!tile){
 		return NULL;
 	}
-	tile->x = x;
+	tile->x = (char)x+96;
 	tile->y = y;
 	return tile;
+}
+
+int Tile_equals(struct Tile* this, struct Tile* other){
+	return (this->x == other->x && this->y == other->y);
 }
 
 /*

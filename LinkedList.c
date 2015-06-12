@@ -66,7 +66,7 @@ int LinkedList_concatenate(struct LinkedList* firstList, struct LinkedList* seco
 	firstList->last->next = secondList->first;
 	firstList->last = secondList->last;
 	firstList->length = LinkedList_length(firstList) + LinkedList_length(secondList);
-	free(secondList); /* second list structure no longer relevant */
+	LinkedList_free(secondList); /* second list structure no longer relevant */
 	return 0;
 }
 
