@@ -305,9 +305,12 @@ int executeCommand(char* command){
 	}
 	else{
 		if (strcmp(command, "get_moves") == 0){
-			struct LinkedList* possibleMoves = Board_getPossibleMoves(board, player);
-			PossibleMoveList_print(possibleMoves);
-			LinkedList_free(possibleMoves); 
+			struct LinkedList* allPossibleMoves = Board_getPossibleMoves(board, player);
+			if (allocationFailed(allPossibleMoves)){
+				return 21;
+			}
+			PossibleMoveList_print(allPossibleMoves);
+			LinkedList_free(allPossibleMoves); 
 			return 0;
 		}
 		
@@ -412,7 +415,7 @@ int main(){
 			computerTurn();
 			Board_print(board);
 			int computerWon = (Board_getScore(board) == -100);
-			if (playerWon){
+			if (computerWon){
 				printf("%s player wins!\n", (AI == BLACK)? "Black": "White");
 				break;
 			}

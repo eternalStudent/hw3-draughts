@@ -225,12 +225,13 @@ static struct LinkedList* getPossibleJumps (char** currentBoard, int player){
 			if (!Board_isPieceInSpecifiedColor(currentBoard, x, y, player)){
 				continue;
 			}
-			for (int i = -1; i <= 1; i+=2){
-				for (int j= -1; j<=1; j+=2){
-					int enemyNearby = isInRange(x+i,y+j) 
-							&& Board_isPieceInSpecifiedColor(currentBoard, x, y, !player);
-					int enemyIsCapturable = isInRange(x+2*i,y+2*j) 
-							&& currentBoard[x+2*i][y+2*j] == Board_EMPTY;
+			for (int i = -1; i <= 1; i += 2){
+				for (int j = -1; j<= 1; j +=2){
+					if (!isInRange(x+i+1,y+j+1) || !isInRange(x+2*i+1,y+2*j+1)){
+						continue;
+					}
+					int enemyNearby = Board_isPieceInSpecifiedColor(currentBoard, x+i+1, y+i+1, !player);
+					int enemyIsCapturable = (currentBoard[x+2*i][y+2*j] == Board_EMPTY);
 					if(enemyNearby && enemyIsCapturable){
 						struct Tile* destTile = Tile_new(x+2*i+1, y+2*j+1);
 						struct LinkedList* individualJumpMovesList = LinkedList_new(&Tile_free);
@@ -247,13 +248,16 @@ static struct LinkedList* getPossibleJumps (char** currentBoard, int player){
 
 static struct LinkedList* getPossibleSingleMoves (char** currentBoard, int player){
 	struct LinkedList* singleMovesList = LinkedList_new(&PossibleMove_free);
-	int forward = (player == 0) ? -1 : 1; /* for each player's different direction of "forward" */
+	int forward = (player == BLACK) ? -1 : 1; /* for each player's different direction of "forward" */
 	for (int x = 0; x < Board_SIZE; x++){
 		for (int y = 0; y < Board_SIZE; y++){
 			if (!Board_isPieceInSpecifiedColor(currentBoard, x, y, player)){
 				continue;
 			} 
 			for (int i = -1; i <= 1; i += 2){
+				if (!isInRange(x+i+1, y+forward+1)){
+					continue;
+				}
 				if(currentBoard[x+i][y+forward] == Board_EMPTY){
 					struct Tile* destTile = Tile_new(x+i+1, y+forward+1);
 					struct LinkedList* singleMoveTileList = LinkedList_new(&Tile_free);
@@ -269,7 +273,7 @@ static struct LinkedList* getPossibleSingleMoves (char** currentBoard, int playe
 
 struct LinkedList* Board_getPossibleMoves(char** board, int player){
 	struct LinkedList* jumpMovesList = getPossibleJumps(board, player);
-	if (jumpMovesList->first != NULL){ /* if jumps are possible, they are the only type of move possible */
+	if (LinkedList_length(jumpMovesList) != 0){ /* if jumps are possible, they are the only type of move possible */
 		return jumpMovesList;
 	}
 	struct LinkedList* singleMovesList = getPossibleSingleMoves(board, player);

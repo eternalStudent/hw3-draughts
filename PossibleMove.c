@@ -59,7 +59,6 @@ void PossibleMove_print(struct PossibleMove* move){
 		struct Tile* tile = (struct Tile*)Iterator_next(iterator);
 		Tile_print(tile);
 	}
-	printf("\n");
 	Iterator_free(iterator);
 }
 
