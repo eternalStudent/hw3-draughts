@@ -253,7 +253,7 @@ int movePiece(char* str){
 			exitcode = 15;
 			break;
 		}
-		board = Board_getPossibleBoard(board, possibleMove);
+		Board_update(board, possibleMove);
 		exitcode = 17;
 		break;
 	}

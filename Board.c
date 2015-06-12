@@ -185,24 +185,31 @@ static void Board_move(char** board, char oldCh, int oldY, char newCh, int newY)
 	Board_removeCaptured(board, oldX, oldY, newX, newY);
 }
 
-/*
- * Creates a board representing the state of the board after a possible move has been carried out.
- *
- * @params: (board) is the the existing state of the board and (move) is a specific set of moves currently possible 
- * @return: NULL if any of the moves specified is illegal or impossible, the possible state of the board following this move otherwise
- */
-char** Board_getPossibleBoard(char** board, struct PossibleMove* move){
-	char** possibleBoard = Board_new();
-	Board_copy(possibleBoard, board);
-	struct Tile* currentTile = move->start;
+void Board_update(char** board, struct PossibleMove* move){
+	struct Tile* current = move->start;
 	struct LinkedList* moves = move->moves;
 	struct Iterator* iterator = Iterator_new(moves);
 	while(Iterator_hasNext(iterator)){
-		struct Tile* next = (struct Tile*)Iterator_next(iterator);
-		Board_move(possibleBoard, currentTile->x, currentTile->y, next->x, next->y);
-		currentTile = next;
+		struct Tile* dest = (struct Tile*)Iterator_next(iterator);
+		Board_move(board, current->x, current->y, dest->x, dest->y);
+		current = dest;
 	}
 	Iterator_free(iterator);
+}
+
+/*
+ * Creates a board representing the state of the board after a possible move has been carried out.
+ *
+ * @params: move - a pointer to the move to be carried out.
+ * @return: NULL if any allocation errors occurred, the new board otherwise
+ */
+char** Board_getPossibleBoard(char** board, struct PossibleMove* move){
+	char** possibleBoard = Board_new();
+	if (!possibleBoard){
+		return NULL;
+	}
+	Board_copy(possibleBoard, board);
+	Board_update(possibleBoard, move);
 	return possibleBoard;
 }
 

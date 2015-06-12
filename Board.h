@@ -11,17 +11,17 @@
 
 char** Board_new();
 
-void Board_init    (char** board);
+void Board_init      (char** board);
 
-void Board_clear   (char** board);
+void Board_clear     (char** board);
 
-void Board_copy    (char** dest, char** src);
+void Board_copy      (char** dest, char** src);
 
-int charToInt      (char x);
+int  charToInt       (char x);
 
-int Board_isEmpty  (char** board, int x, int y);
+int  Board_isEmpty   (char** board, int x, int y);
 
-int Board_isValidPosition (char** board, int x, int y);
+int  Board_isValidPosition (char** board, int x, int y);
 
 int  Board_set       (char** board, char x, int y, char piece);
 
@@ -29,12 +29,14 @@ int  Board_remove    (char** board, char x, int y);
 
 int  Board_isPlayable(char** board);
 
-char** Board_getPossibleBoard(char** board, struct PossibleMove* move);
+void Board_update    (char** board, struct PossibleMove* move);
+
+char** Board_getPossibleBoard    (char** board, struct PossibleMove* move);
 
 int Board_isPieceInSpecifiedColor(char** board, int x, int y, int color);
 
 struct LinkedList* Board_getPossibleMoves(char** board, int player);
 
-void Board_print   (char** board);
+void Board_print     (char** board);
 
-void Board_free    (char** board);
+void Board_free      (char** board);
