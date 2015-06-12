@@ -84,37 +84,6 @@ int Board_isValidPosition(char** board, int x, int y){
 	return (isInRange(x,y) && isOnBlack(x,y));
 }
 
-/*
- * Place a piece on the board.
- *
- * @params: (x, y) - the coordinates of the tile, 
- *          piece  - the piece to be put
- * @return: -1 if (x, y) is out of range or on a white tile, 0 otherwise
- */
-int Board_set(char** board, char ch, int y, char piece){
-	int x = charToInt(ch);
-	if (isInRange(x, y) && isOnBlack(x, y)){
-		board[x-1][y-1] = piece;
-		return 0;
-	}
-	return -1;
-}
-
-/*
- * Removes a piece from the board.
- * 
- * @params: (x, y) - the coordinates of the tile in which the piece to be removed is placed
- * @return: -1 if the coordinates are out of range, 0 otherwise
- */
-int Board_remove(char** board, char ch, int y){
-	int x = charToInt(ch);
-	if (isInRange(x, y)){
-		board[x-1][y-1] = Board_EMPTY;
-		return 0;
-	}
-	return -1;
-}
-
 int Board_isPlayable(char** board){
 	int countBlack = 0;
 	int countWhite = 0;

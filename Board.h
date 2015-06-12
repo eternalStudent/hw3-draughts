@@ -23,10 +23,6 @@ int  Board_isEmpty   (char** board, int x, int y);
 
 int  Board_isValidPosition (char** board, int x, int y);
 
-int  Board_set       (char** board, char x, int y, char piece);
-
-int  Board_remove    (char** board, char x, int y);
-
 int  Board_isPlayable(char** board);
 
 void Board_update    (char** board, struct PossibleMove* move);

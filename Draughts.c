@@ -14,7 +14,8 @@ int player;
 int AI;
 int maxRecursionDepth;
 int state;
-
+struct LinkedList* playerPossibleMoves = NULL;
+struct LinkedList* computerPossibleMoves = NULL;
 
 static int compile_regex(regex_t* r, const char* regex_text){
     int status = regcomp(r, regex_text, REG_EXTENDED);
@@ -244,12 +245,11 @@ int movePiece(char* str){
 		//TODO: iterate over tile and check whether they are legal and add them to moves
 			
 		possibleMove = PossibleMove_new(x, y, moves, board);
-		allPossibleMoves = Board_getPossibleMoves(board, player);
-		if (allocationFailed(possibleMove) || allocationFailed(allPossibleMoves)){
+		if (allocationFailed(possibleMove)){
 			exitcode = 21;
 			break;
 		}
-		if (!PossibleMoveList_contains(allPossibleMoves, possibleMove)){
+		if (!PossibleMoveList_contains(playerPossibleMoves, possibleMove)){
 			exitcode = 15;
 			break;
 		}
@@ -258,13 +258,21 @@ int movePiece(char* str){
 		break;
 	}
 	regfree(&r);
-	if (allPossibleMoves != NULL){
-		PossibleMoveList_free(allPossibleMoves);
-	}
 	if (possibleMove != NULL){
 		PossibleMove_free(possibleMove);
 	}	
 	return exitcode;
+}
+
+int updatePossibleMoves(){
+	if (playerPossibleMoves){
+		LinkedList_free(playerPossibleMoves);
+	}
+	struct LinkedList* playerPossibleMoves = Board_getPossibleMoves(board, player);
+	if (allocationFailed(playerPossibleMoves)){
+		return 21;
+	}
+	return 0;
 }
 
 int executeCommand(char* command){
@@ -282,7 +290,7 @@ int executeCommand(char* command){
 		if (strcmp(command, "start") == 0){
 			if (Board_isPlayable(board)){
 				state = GAME;
-				return 0;
+				return updatePossibleMoves();
 			}
 			return 13;
 		}		
@@ -305,12 +313,7 @@ int executeCommand(char* command){
 	}
 	else{
 		if (strcmp(command, "get_moves") == 0){
-			struct LinkedList* allPossibleMoves = Board_getPossibleMoves(board, player);
-			if (allocationFailed(allPossibleMoves)){
-				return 21;
-			}
-			PossibleMoveList_print(allPossibleMoves);
-			LinkedList_free(allPossibleMoves); 
+			PossibleMoveList_print(playerPossibleMoves);
 			return 0;
 		}
 		
@@ -322,8 +325,20 @@ int executeCommand(char* command){
 	return -2;
 }
 
+void freeGlobals(){
+	Board_free(board);
+	if (playerPossibleMoves){
+		LinkedList_free(playerPossibleMoves);
+	}
+	if (computerPossibleMoves){
+		LinkedList_free(computerPossibleMoves);
+	}
+}
+
 void printError(int error){
 	switch(error){
+		case (0):
+			break;
 		case(-2):
 			printf("Illegal command, please try again\n");
 			break;
@@ -343,7 +358,7 @@ void printError(int error){
 			printf("Illegal move\n");
 			break;
 		case(21):
-			Board_free(board);
+			freeGlobals();
 			exit(0);
 		default:
 			printf("Illegal command, please try again\n");
@@ -381,6 +396,7 @@ char** minimax(char** board, int depth, int color){
 void computerTurn(){
 	char** bestBoard = minimax(board, maxRecursionDepth, AI);
 	Board_copy(board, bestBoard);
+	printError(updatePossibleMoves());
 }
 
 int main(){
@@ -421,6 +437,6 @@ int main(){
 			}
 		}
 	}
-	Board_free(board);
+	freeGlobals();
 	return 0;
 }
