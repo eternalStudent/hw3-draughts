@@ -214,7 +214,7 @@ int Board_isPieceInSpecifiedColor(char** board, int x, int y, int color){
 	else{
 		char playerColor[2] = {Board_WHITE_MAN, Board_WHITE_KING}; 
 	}
-	return (board[x][y] == playerColor[0] || board[x][y] == playerColor[1]);
+	return (board[x-1][y-1] == playerColor[0] || board[x-1][y-1] == playerColor[1]);
 }
 
 static struct LinkedList* getPossibleJumps (char** currentBoard, int player){
@@ -222,7 +222,7 @@ static struct LinkedList* getPossibleJumps (char** currentBoard, int player){
 	
 	for (int x = 0; x < Board_SIZE; x++){
 		for (int y = 0; y < Board_SIZE; y++){
-			if (!Board_isPieceInSpecifiedColor(currentBoard, x, y, player)){
+			if (!Board_isPieceInSpecifiedColor(currentBoard, x+1, y+1, player)){
 				continue;
 			}
 			for (int i = -1; i <= 1; i += 2){
@@ -251,7 +251,7 @@ static struct LinkedList* getPossibleSingleMoves (char** currentBoard, int playe
 	int forward = (player == BLACK) ? -1 : 1; /* for each player's different direction of "forward" */
 	for (int x = 0; x < Board_SIZE; x++){
 		for (int y = 0; y < Board_SIZE; y++){
-			if (!Board_isPieceInSpecifiedColor(currentBoard, x, y, player)){
+			if (!Board_isPieceInSpecifiedColor(currentBoard, x+1, y+1, player)){
 				continue;
 			} 
 			for (int i = -1; i <= 1; i += 2){
