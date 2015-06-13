@@ -256,40 +256,6 @@ struct LinkedList* Board_getPossibleMoves(char** board, int player){
 	return singleMovesList;
 }	
 
-/*
- * Evaluates the board according to the specified scoring function.
- *
- * @return: a numeric evaluation of the board
- */
-int Board_getScore(char** board){
-	int score = 0;
-	for (int x = 0; x < Board_SIZE; x++){
-		for (int y = 0; y < Board_SIZE; y++){
-			char piece = board[x][y];
-			if (piece == Board_BLACK_MAN){
-				score--;
-				continue;
-			}
-			if (piece == Board_WHITE_MAN){
-				score++;
-				continue;
-			}
-			if (piece == Board_BLACK_KING){
-				score-=3;
-				continue;
-			}
-			if (piece == Board_WHITE_KING){
-				score+=3;
-				continue;
-			}
-		}
-	}
-	
-	//TODO: factor in every player's possibility to make further moves (or lack thereof)
-	
-	return score;
-}
-
 static void printLine(){
 	printf("  |");
 	for (int x = 1; x < Board_SIZE*4; x++){

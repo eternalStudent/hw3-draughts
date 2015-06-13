@@ -63,7 +63,6 @@ int setMinimaxDepth (char* str){
 	regmatch_t matches[2];
 	char* pattern = "^minimax_depth\\s+(-?[0-9]+)$";
 	int depth;
-	char* depthAsString;
 	compile_regex(&r, pattern);
 	if (regexec(&r, str, 2, matches, 0) != 0){
 		regfree(&r);
@@ -215,10 +214,9 @@ int movePiece(char* str){
 	regex_t r; 	
 	regmatch_t matches[5];
 	int exitcode;
-	char* pattern = "^move\\s+<([a-z]),([0-9]+)>\\s+to\\s*((<([a-z]),([0-9]+)>)+)";
+	char* pattern = "^move\\s+<([a-z]),([0-9]+)>\\s+to\\s*((<[a-z],[0-9]+>)+)";
 	compile_regex(&r, pattern);
 	struct PossibleMove* possibleMove = NULL;
-	struct LinkedList* allPossibleMoves = NULL;	
 	while(1){
 		if (regexec(&r, str, 5, matches, 0) != 0){
 			exitcode = 1;
@@ -243,18 +241,43 @@ int movePiece(char* str){
 			exitcode = 21;
 			break;
 		}
-		
-		//TODO: iterate over tile and check whether they are legal and add them to moves
 			
+		char* destPosSection = (char*)calloc(strlen(str+matches[3].rm_so)+1, sizeof(char));
+		if (allocationFailed(destPosSection)){
+			exitcode = 21;
+			break;
+		}
+		
+		strcpy(destPosSection,str+matches[3].rm_so);
+		char* token;
+		token = strtok(destPosSection, "><");
+		while (token != NULL) {
+			int x = (int)token[0]-96;
+			int y = strtol(token+2,NULL,10);
+			if (!Board_isValidPosition(board, x, y)){
+				LinkedList_free(moves);
+				free(destPosSection);
+				regfree(&r);
+				return 12; // must return with number instead of setting exitcode and breaking,	because breakpoint is inside two loops
+			}	
+			struct Tile* nextMove = Tile_new(x,y);
+			LinkedList_add(moves, nextMove);
+			token = strtok(NULL, "><");
+		}	
+		free(destPosSection);
+		
+		//constructing the move structure
 		possibleMove = PossibleMove_new(x, y, moves, board);
 		if (allocationFailed(possibleMove)){
 			exitcode = 21;
 			break;
 		}
+		//making sure move is legal
 		if (!PossibleMoveList_contains(playerPossibleMoves, possibleMove)){
 			exitcode = 15;
 			break;
 		}
+		//if all preconditions are met, the move is carried out
 		Board_update(board, possibleMove);
 		exitcode = 17;
 		break;
@@ -262,7 +285,7 @@ int movePiece(char* str){
 	regfree(&r);
 	if (possibleMove != NULL){
 		PossibleMove_free(possibleMove);
-	}	
+	}
 	return exitcode;
 }
 
@@ -274,6 +297,15 @@ int updatePossibleMoves(){
 	if (allocationFailed(playerPossibleMoves)){
 		return 21;
 	}
+	
+	if (computerPossibleMoves){
+		LinkedList_free(computerPossibleMoves);
+	}
+	computerPossibleMoves = Board_getPossibleMoves(board, AI);
+	if (allocationFailed(computerPossibleMoves)){
+		return 21;
+	}
+	
 	return 0;
 }
 
@@ -291,7 +323,7 @@ int executeCommand(char* command){
 	int error;
 	command = strtok(command, "\n");
 	if (state == SETTINGS){
-		if (strcmp(command, "quit\n") == 0){
+		if (strcmp(command, "quit") == 0){
 			freeGlobals();
 			exit(0);
 		}
@@ -333,6 +365,11 @@ int executeCommand(char* command){
 			return 0;
 		}
 		
+		if (strcmp(command, "quit") == 0){
+			freeGlobals();
+			exit(0);
+		}
+		
 		error = movePiece(command);
 		if(error != 1){
 			return error;
@@ -363,6 +400,8 @@ void printError(int error){
 		case(15):
 			printf("Illegal move\n");
 			break;
+		case(17):
+			break;
 		case(21):
 			freeGlobals();
 			exit(0);
@@ -370,6 +409,46 @@ void printError(int error){
 			printf("Illegal command, please try again\n");
 			break;
 	}
+}
+
+/*
+ * Evaluates the board according to the specified scoring function.
+ *
+ * @return: a numeric evaluation of the board
+ */
+int Board_getScore(char** board){
+	if ((LinkedList_length(playerPossibleMoves) == 0)){ // no possible moves left for human player, computer wins
+			return 100;
+		}
+		
+	if ((LinkedList_length(computerPossibleMoves) == 0)){ // no possible moves left for computer, human player wins
+			return -100;
+		}
+
+	int score = 0;
+	for (int x = 0; x < Board_SIZE; x++){
+		for (int y = 0; y < Board_SIZE; y++){		
+			char piece = board[x][y];
+			if (piece == Board_BLACK_MAN){
+				score--;
+				continue;
+			}
+			if (piece == Board_WHITE_MAN){
+				score++;
+				continue;
+			}
+			if (piece == Board_BLACK_KING){
+				score-=3;
+				continue;
+			}
+			if (piece == Board_WHITE_KING){
+				score+=3;
+				continue;
+			}
+		}
+	}
+	
+	return score;
 }
 
 char** minimax(char** board, int depth, int color){
@@ -382,10 +461,10 @@ char** minimax(char** board, int depth, int color){
 	struct Iterator iterator;
 	Iterator_init(&iterator, possibleMoves);
 	while (Iterator_hasNext(&iterator)) {
-		struct PossibleMove* currentPossibleMove = (struct PossibleMove*)Iterator_next(&iterator); 
+		struct PossibleMove* currentPossibleMove = (struct PossibleMove*)Iterator_next(&iterator);
 		int score = Board_getScore( minimax(currentPossibleMove->board, !color, depth-1) ); 
-		if (player == BLACK){
-			score = -score;
+		if (player == BLACK && (abs(score) != 100)) { // if score is 100 or (-100) it doesn't depend on the players' colours,
+            score = -score;                           // only on the fact that one of them no longer has possible moves. Therefore, it shouldn't be inverted.*/
 		}
 		if (extremum == 101 || 
 				(color == AI     && score >  extremum) || 
@@ -422,14 +501,14 @@ int main(){
 		printError(exitcode);
 		if (state == GAME && exitcode == MOVE){
 			Board_print(board);
-			int playerWon = (Board_getScore(board) == 100);
+			int playerWon = (Board_getScore(board) == -100);
 			if (playerWon){
 				printf("%s player wins!\n", (player == BLACK)? "Black": "White");
 				break;
 			}
 			computerTurn();
 			Board_print(board);
-			int computerWon = (Board_getScore(board) == -100);
+			int computerWon = (Board_getScore(board) == 100);
 			if (computerWon){
 				printf("%s player wins!\n", (AI == BLACK)? "Black": "White");
 				break;
