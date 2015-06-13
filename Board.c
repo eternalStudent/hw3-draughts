@@ -249,9 +249,9 @@ int Board_getScore(char** board, int color){
 	int opponentHasMoves = 0;
 	for (int x = 0; x < Board_SIZE; x++){
 		for (int y = 0; y < Board_SIZE; y++){		
-			hasMoves = isSingleStepPossible(board, x+1, y+1, color) 
+			hasMoves += isSingleStepPossible(board, x+1, y+1, color) 
 					|| isJumpPossible(board, x+1, y+1, color);
-			opponentHasMoves = isSingleStepPossible(board, x+1, y+1, !color) 
+			opponentHasMoves += isSingleStepPossible(board, x+1, y+1, !color) 
 					|| isJumpPossible(board, x+1, y+1, !color);
 			score += Board_evalPiece(board, x+1, y+1, color);
 		}
