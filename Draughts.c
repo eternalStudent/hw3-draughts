@@ -439,6 +439,9 @@ char** minimax(char** board, int depth, int color){
 	if (depth == 0){
 		return board;
 	}
+	if (abs(Board_getScore(board, color)) == 100){
+		return board;
+	}
 	struct LinkedList* possibleMoves = Board_getPossibleMoves(board, color);
 	struct PossibleMove* bestPossibleMove;
 	int extremum = 101;
