@@ -1,21 +1,10 @@
 #include "Iterator.h"
 #include <stdio.h>
 
-/* 
- * Creates a new Iterator structure, enabling iteration over a LinkedList structure.
- *
- * @params: list - a pointer to the list to be iterated over
- * @return: NULL if any allocation errors occurred, the iterator otherwise
- */
-struct Iterator* Iterator_new(struct LinkedList* list){
-	struct Iterator* iterator;
-	iterator = (struct Iterator*)calloc(1, sizeof(struct Iterator));
-	if (!iterator){
-		return NULL;
-	}
+
+void Iterator_init(struct Iterator* iterator, struct LinkedList* list){
 	iterator->first = list->first;
 	iterator->current = NULL;
-	return iterator;
 }
 
 /* 
@@ -42,11 +31,4 @@ int Iterator_hasNext(struct Iterator* iterator){
 		return 1;
 	}
 	return (iterator->current->next != NULL);
-}
-
-/* 
- *Frees the iterator
- */
-void Iterator_free(struct Iterator* iterator){
-	free(iterator);
 }

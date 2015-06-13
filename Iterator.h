@@ -6,10 +6,8 @@ struct Iterator{
 };
 
 
-struct Iterator* Iterator_new(struct LinkedList* list);
+void Iterator_init(struct Iterator* iterator, struct LinkedList* list);
 	
-void* Iterator_next(struct Iterator* node);
+void* Iterator_next(struct Iterator* iterator);
 
-int Iterator_hasNext(struct Iterator* node);
-
-void Iterator_free(struct Iterator* iterator);
+int Iterator_hasNext(struct Iterator* iterator);

@@ -27,24 +27,22 @@ struct PossibleMove* PossibleMove_new(int x, int y, struct LinkedList* moveList,
 }
 
 int PossibleMove_equals(struct PossibleMove* this, struct PossibleMove* other){
-	int exitcode = 1;
 	int tile_equals = Tile_equals(this->start, other->start);
 	if (!tile_equals || LinkedList_length(this->moves) != LinkedList_length(other->moves)){
 		return 0;
 	}
-	struct Iterator* it1 = Iterator_new(this->moves);
-	struct Iterator* it2 = Iterator_new(other->moves);
-	while (Iterator_hasNext(it1)){
-		struct Tile* curr1 = (struct Tile*)Iterator_next(it1);
-		struct Tile* curr2 = (struct Tile*)Iterator_next(it2);
+	struct Iterator it1;
+	Iterator_init(&it1, this->moves);
+	struct Iterator it2;
+	Iterator_init(&it2, other->moves);
+	while (Iterator_hasNext(&it1)){
+		struct Tile* curr1 = (struct Tile*)Iterator_next(&it1);
+		struct Tile* curr2 = (struct Tile*)Iterator_next(&it2);
 		if (!Tile_equals(curr1, curr2)){
-			exitcode = 0;
-			break;
+			return 0;
 		}	
 	}
-	Iterator_free(it1);
-	Iterator_free(it2);
-	return exitcode;
+	return 1;
 }
 
 /* 
@@ -54,12 +52,12 @@ void PossibleMove_print(struct PossibleMove* move){
 	printf("move ");
 	Tile_print(move->start);
 	printf(" to ");
-	struct Iterator* iterator = Iterator_new(move->moves);
-	while (Iterator_hasNext(iterator)){
-		struct Tile* tile = (struct Tile*)Iterator_next(iterator);
+	struct Iterator iterator;
+	Iterator_init(&iterator, move->moves);
+	while (Iterator_hasNext(&iterator)){
+		struct Tile* tile = (struct Tile*)Iterator_next(&iterator);
 		Tile_print(tile);
 	}
-	Iterator_free(iterator);
 }
 
 /* 

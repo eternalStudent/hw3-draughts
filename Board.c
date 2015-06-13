@@ -157,13 +157,13 @@ static void Board_move(char** board, char oldCh, int oldY, char newCh, int newY)
 void Board_update(char** board, struct PossibleMove* move){
 	struct Tile* current = move->start;
 	struct LinkedList* moves = move->moves;
-	struct Iterator* iterator = Iterator_new(moves);
-	while(Iterator_hasNext(iterator)){
-		struct Tile* dest = (struct Tile*)Iterator_next(iterator);
+	struct Iterator iterator;
+	Iterator_init(&iterator, moves);
+	while(Iterator_hasNext(&iterator)){
+		struct Tile* dest = (struct Tile*)Iterator_next(&iterator);
 		Board_move(board, current->x, current->y, dest->x, dest->y);
 		current = dest;
 	}
-	Iterator_free(iterator);
 }
 
 /*

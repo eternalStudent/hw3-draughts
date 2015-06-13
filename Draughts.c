@@ -14,8 +14,8 @@ int player;
 int AI;
 int maxRecursionDepth;
 int state;
-struct LinkedList* playerPossibleMoves = NULL;
-struct LinkedList* computerPossibleMoves = NULL;
+struct LinkedList* playerPossibleMoves;
+struct LinkedList* computerPossibleMoves;
 
 static int compile_regex(regex_t* r, const char* regex_text){
     int status = regcomp(r, regex_text, REG_EXTENDED);
@@ -46,6 +46,8 @@ void initialize(){
 	AI     = BLACK;
 	maxRecursionDepth = 1;
 	state = SETTINGS;
+	playerPossibleMoves = NULL;
+	computerPossibleMoves = NULL;
 }
 
 /* 
@@ -268,17 +270,31 @@ int updatePossibleMoves(){
 	if (playerPossibleMoves){
 		LinkedList_free(playerPossibleMoves);
 	}
-	struct LinkedList* playerPossibleMoves = Board_getPossibleMoves(board, player);
+	playerPossibleMoves = Board_getPossibleMoves(board, player);
 	if (allocationFailed(playerPossibleMoves)){
 		return 21;
 	}
 	return 0;
 }
 
+void freeGlobals(){
+	Board_free(board);
+	if (playerPossibleMoves){
+		LinkedList_free(playerPossibleMoves);
+	}
+	if (computerPossibleMoves){
+		LinkedList_free(computerPossibleMoves);
+	}
+}
+
 int executeCommand(char* command){
 	int error;
 	command = strtok(command, "\n");
 	if (state == SETTINGS){
+		if (strcmp(command, "quit\n") == 0){
+			freeGlobals();
+			exit(0);
+		}
 		if (strcmp(command, "clear") == 0){
 			Board_clear(board);
 			return 0;
@@ -325,16 +341,6 @@ int executeCommand(char* command){
 	return -2;
 }
 
-void freeGlobals(){
-	Board_free(board);
-	if (playerPossibleMoves){
-		LinkedList_free(playerPossibleMoves);
-	}
-	if (computerPossibleMoves){
-		LinkedList_free(computerPossibleMoves);
-	}
-}
-
 void printError(int error){
 	switch(error){
 		case (0):
@@ -373,9 +379,10 @@ char** minimax(char** board, int depth, int color){
 	struct LinkedList* possibleMoves = Board_getPossibleMoves(board, color);
 	struct PossibleMove* bestPossibleMove;
 	int extremum = 101;
-	struct Iterator* iterator = Iterator_new(possibleMoves);
-	while (Iterator_hasNext(iterator)) {
-		struct PossibleMove* currentPossibleMove = (struct PossibleMove*)Iterator_next(iterator); 
+	struct Iterator iterator;
+	Iterator_init(&iterator, possibleMoves);
+	while (Iterator_hasNext(&iterator)) {
+		struct PossibleMove* currentPossibleMove = (struct PossibleMove*)Iterator_next(&iterator); 
 		int score = Board_getScore( minimax(currentPossibleMove->board, !color, depth-1) ); 
 		if (player == BLACK){
 			score = -score;
@@ -389,7 +396,6 @@ char** minimax(char** board, int depth, int color){
 			bestPossibleMove = currentPossibleMove;
 		}
 	}
-	Iterator_free(iterator);
 	return bestPossibleMove->board;
 }
 
@@ -409,19 +415,12 @@ int main(){
 			fprintf(stderr, "Error: standard function fgets has failed\n");
 			break;
 		}
-		if (strcmp(command, "quit\n") == 0){
-			break;
-		}
 		if (strcmp(command, "\n") == 0){
 			continue;
 		}
 		int exitcode = executeCommand(command);
-		if (exitcode){
-			printError(exitcode);
-			continue;
-		}
-		int commandWasMove = (exitcode == MOVE);
-		if (state == GAME && commandWasMove){
+		printError(exitcode);
+		if (state == GAME && exitcode == MOVE){
 			Board_print(board);
 			int playerWon = (Board_getScore(board) == 100);
 			if (playerWon){
