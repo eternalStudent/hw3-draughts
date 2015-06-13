@@ -182,23 +182,95 @@ char** Board_getPossibleBoard(char** board, struct PossibleMove* move){
 	return possibleBoard;
 }
 
-int Board_isPieceInSpecifiedColor(char** board, int x, int y, int color){
-	char playerColor[2];
-	if (color == BLACK){
-		char playerColor[2] = {Board_BLACK_MAN, Board_BLACK_KING};
-	}	
-	else{
-		char playerColor[2] = {Board_WHITE_MAN, Board_WHITE_KING}; 
+int Board_evalPiece(char** board, int x, int y, int color){
+	char piece = board[x-1][y-1];
+	int value = 0;
+	if (piece == Board_WHITE_MAN){
+		value = 1;
 	}
-	return (board[x-1][y-1] == playerColor[0] || board[x-1][y-1] == playerColor[1]);
+	if (piece == Board_WHITE_KING){
+		value = 3;
+	}
+	if (piece == Board_BLACK_MAN){
+		value = -1;
+	}
+	if (piece == Board_BLACK_KING){
+		value = -3;
+	}
+	if (color == BLACK){
+		return -value;
+	}
+	return value;
 }
 
-static struct LinkedList* getPossibleJumps (char** currentBoard, int player){
+int isSingleStepPossible(char** board, int x, int y, int color){
+	int forward = (color == BLACK)? -1: 1;
+	if (Board_evalPiece(board, x+1, y+1, color) <= 0){
+		return 0;
+	} 
+	for (int i = -1; i <= 1; i += 2){
+		if (!isInRange(x+i+1, y+forward+1)){
+			continue;
+		}
+		if(board[x+i][y+forward] == Board_EMPTY){
+			return 1;
+		}
+	}
+	return 0;
+}
+
+int isJumpPossible(char** board, int x, int y, int color){
+	if (Board_evalPiece(board, x+1, y+1, color) <= 0){
+		return 0;
+	}
+	for (int i = -1; i <= 1; i += 2){
+		for (int j = -1; j<= 1; j +=2){
+			if (!isInRange(x+i+1,y+j+1) || !isInRange(x+2*i+1,y+2*j+1)){
+				continue;
+			}
+			int enemyNearby = Board_evalPiece(board, x+i+1, y+i+1, !color) > 0;
+			int enemyIsCapturable = (board[x+2*i][y+2*j] == Board_EMPTY);
+			if(enemyNearby && enemyIsCapturable){
+				return 1;
+			}
+		}
+	}
+	return 0;
+}
+
+/*
+ * Evaluates the board according to the specified scoring function.
+ *
+ * @return: a numeric evaluation of the board
+ */
+int Board_getScore(char** board, int color){
+	int score = 0;
+	int win = 0;
+	int lose = 0;
+	for (int x = 0; x < Board_SIZE; x++){
+		for (int y = 0; y < Board_SIZE; y++){		
+			win = isSingleStepPossible(board, x+1, y+1, color) 
+					|| isJumpPossible(board, x+1, y+1, color);
+			lose = isSingleStepPossible(board, x+1, y+1, !color) 
+					|| isJumpPossible(board, x+1, y+1, !color);
+			score += Board_evalPiece(board, x+1, y+1, color);
+		}
+	}
+	if (win){
+		return 100;
+	}	
+	if (lose){
+		return -100;
+	} 
+	return score;
+}
+
+static struct LinkedList* getPossibleJumps (char** currentBoard, int color){
 	struct LinkedList* jumpMovesList = LinkedList_new(&PossibleMove_free);
 	
 	for (int x = 0; x < Board_SIZE; x++){
 		for (int y = 0; y < Board_SIZE; y++){
-			if (!Board_isPieceInSpecifiedColor(currentBoard, x+1, y+1, player)){
+			if (Board_evalPiece(currentBoard, x+1, y+1, color) <= 0){
 				continue;
 			}
 			for (int i = -1; i <= 1; i += 2){
@@ -206,7 +278,7 @@ static struct LinkedList* getPossibleJumps (char** currentBoard, int player){
 					if (!isInRange(x+i+1,y+j+1) || !isInRange(x+2*i+1,y+2*j+1)){
 						continue;
 					}
-					int enemyNearby = Board_isPieceInSpecifiedColor(currentBoard, x+i+1, y+i+1, !player);
+					int enemyNearby = Board_evalPiece(currentBoard, x+i+1, y+i+1, !color) > 0;
 					int enemyIsCapturable = (currentBoard[x+2*i][y+2*j] == Board_EMPTY);
 					if(enemyNearby && enemyIsCapturable){
 						struct Tile* destTile = Tile_new(x+2*i+1, y+2*j+1);
@@ -222,12 +294,12 @@ static struct LinkedList* getPossibleJumps (char** currentBoard, int player){
 	return jumpMovesList;
 }
 
-static struct LinkedList* getPossibleSingleMoves (char** currentBoard, int player){
+static struct LinkedList* getPossibleSingleMoves (char** currentBoard, int color){
 	struct LinkedList* singleMovesList = LinkedList_new(&PossibleMove_free);
-	int forward = (player == BLACK) ? -1 : 1; /* for each player's different direction of "forward" */
+	int forward = (color == BLACK) ? -1 : 1; /* for each player's different direction of "forward" */
 	for (int x = 0; x < Board_SIZE; x++){
 		for (int y = 0; y < Board_SIZE; y++){
-			if (!Board_isPieceInSpecifiedColor(currentBoard, x+1, y+1, player)){
+			if (Board_evalPiece(currentBoard, x+1, y+1, color) <= 0){
 				continue;
 			} 
 			for (int i = -1; i <= 1; i += 2){

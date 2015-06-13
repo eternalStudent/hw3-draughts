@@ -15,9 +15,15 @@ int AI;
 int maxRecursionDepth;
 int state;
 struct LinkedList* playerPossibleMoves;
-struct LinkedList* computerPossibleMoves;
 
-static int compile_regex(regex_t* r, const char* regex_text){
+/*
+ * Compiles regular expression.
+ *
+ * @params: r          - a pointer to a regex type
+ *          regex_text - the regex to be compiled
+ * @return: 1 if the expression is not a regex, 0 otherwise
+ */
+int compile_regex(regex_t* r, const char* regex_text){
     int status = regcomp(r, regex_text, REG_EXTENDED);
 	if (status == 0){
 		return 0;
@@ -28,6 +34,12 @@ static int compile_regex(regex_t* r, const char* regex_text){
     return 1;
 }
 
+/*
+ * Checks whether an allocation has failed
+ * 
+ * @params: ptr - a pointer to the data that was allocated
+ * @return: true (1) if the allocation has failed, false (0) otherwise 
+ */
 int allocationFailed(void* ptr){
 	if (ptr == NULL){
 		fprintf(stderr, "Error: standard function calloc has failed\n");
@@ -36,6 +48,10 @@ int allocationFailed(void* ptr){
 	return 0;
 }
 
+
+/*
+ * Initializes the global variables.
+ */
 void initialize(){
 	board = Board_new();
 	if (allocationFailed(board)){
@@ -47,7 +63,19 @@ void initialize(){
 	maxRecursionDepth = 1;
 	state = SETTINGS;
 	playerPossibleMoves = NULL;
-	computerPossibleMoves = NULL;
+}
+
+/*
+ * Frees the allocated global variables.
+ */
+void freeGlobals(){
+	Board_free(board);
+	if (playerPossibleMoves){
+		LinkedList_free(playerPossibleMoves);
+	}
+	if (computerPossibleMoves){
+		LinkedList_free(computerPossibleMoves);
+	}
 }
 
 /* 
@@ -81,7 +109,7 @@ int setMinimaxDepth (char* str){
 /* 
  * Sets the user's color according to input from the user.
  *
- * @params: the input command string*
+ * @params: str - the command
  * @return: 1 if the command didn't match, 0 if the command matched and was executed successfully
  */ 
 int setUserColor (char* str){
@@ -105,6 +133,13 @@ int setUserColor (char* str){
 	return 0;
 }
 
+/*
+ * Parse the position of a tile from a regmatch type array.
+ *
+ * @params: str       - the string to be parsed
+ *          matches[] - the regmatch type array from which to parse the tile.
+ *          (x, y)    - pointers to the variables to which the position will be parsed
+ */
 void getPosition(char* str, regmatch_t matches[], int* x, int* y){
 	int start = matches[1].rm_so;
 	char column = str[start];
@@ -143,6 +178,13 @@ int removePiece(char* str){
 	return 0;
 }
 
+/*
+ * Parse a piece type from a regmatch type array.
+ *
+ * @params: str       - the string to be parsed
+ *          matches[] - the regmatch type array from which to parse the tile.
+ * @return: a char representing the parsed piece
+ */
 char getPiece(char* str, regmatch_t matches[]){
 	char piece;
 	char color = str[matches[3].rm_so];
@@ -230,7 +272,7 @@ int movePiece(char* str){
 			exitcode = 12;
 			break;
 		}
-		if (!Board_isPieceInSpecifiedColor(board, x, y, player)){
+		if (Board_evalPiece(board, x, y, player) <= 0){
 			exitcode = 14;
 			break;
 		}
@@ -294,29 +336,11 @@ int updatePossibleMoves(){
 		LinkedList_free(playerPossibleMoves);
 	}
 	playerPossibleMoves = Board_getPossibleMoves(board, player);
+	
 	if (allocationFailed(playerPossibleMoves)){
 		return 21;
 	}
-	
-	if (computerPossibleMoves){
-		LinkedList_free(computerPossibleMoves);
-	}
-	computerPossibleMoves = Board_getPossibleMoves(board, AI);
-	if (allocationFailed(computerPossibleMoves)){
-		return 21;
-	}
-	
 	return 0;
-}
-
-void freeGlobals(){
-	Board_free(board);
-	if (playerPossibleMoves){
-		LinkedList_free(playerPossibleMoves);
-	}
-	if (computerPossibleMoves){
-		LinkedList_free(computerPossibleMoves);
-	}
 }
 
 int executeCommand(char* command){
@@ -411,46 +435,6 @@ void printError(int error){
 	}
 }
 
-/*
- * Evaluates the board according to the specified scoring function.
- *
- * @return: a numeric evaluation of the board
- */
-int Board_getScore(char** board){
-	if ((LinkedList_length(playerPossibleMoves) == 0)){ // no possible moves left for human player, computer wins
-			return 100;
-		}
-		
-	if ((LinkedList_length(computerPossibleMoves) == 0)){ // no possible moves left for computer, human player wins
-			return -100;
-		}
-
-	int score = 0;
-	for (int x = 0; x < Board_SIZE; x++){
-		for (int y = 0; y < Board_SIZE; y++){		
-			char piece = board[x][y];
-			if (piece == Board_BLACK_MAN){
-				score--;
-				continue;
-			}
-			if (piece == Board_WHITE_MAN){
-				score++;
-				continue;
-			}
-			if (piece == Board_BLACK_KING){
-				score-=3;
-				continue;
-			}
-			if (piece == Board_WHITE_KING){
-				score+=3;
-				continue;
-			}
-		}
-	}
-	
-	return score;
-}
-
 char** minimax(char** board, int depth, int color){
 	if (depth == 0){
 		return board;
@@ -462,10 +446,7 @@ char** minimax(char** board, int depth, int color){
 	Iterator_init(&iterator, possibleMoves);
 	while (Iterator_hasNext(&iterator)) {
 		struct PossibleMove* currentPossibleMove = (struct PossibleMove*)Iterator_next(&iterator);
-		int score = Board_getScore( minimax(currentPossibleMove->board, !color, depth-1) ); 
-		if (player == BLACK && (abs(score) != 100)) { // if score is 100 or (-100) it doesn't depend on the players' colours,
-            score = -score;                           // only on the fact that one of them no longer has possible moves. Therefore, it shouldn't be inverted.*/
-		}
+		int score = Board_getScore( minimax(currentPossibleMove->board, !color, depth-1), color ); 
 		if (extremum == 101 || 
 				(color == AI     && score >  extremum) || 
 				(color == player && score <  extremum) || 
@@ -501,14 +482,14 @@ int main(){
 		printError(exitcode);
 		if (state == GAME && exitcode == MOVE){
 			Board_print(board);
-			int playerWon = (Board_getScore(board) == -100);
+			int playerWon = (Board_getScore(board, player) == 100);
 			if (playerWon){
 				printf("%s player wins!\n", (player == BLACK)? "Black": "White");
 				break;
 			}
 			computerTurn();
 			Board_print(board);
-			int computerWon = (Board_getScore(board) == 100);
+			int computerWon = (Board_getScore(board, AI) == 100);
 			if (computerWon){
 				printf("%s player wins!\n", (AI == BLACK)? "Black": "White");
 				break;

@@ -29,7 +29,9 @@ void Board_update    (char** board, struct PossibleMove* move);
 
 char** Board_getPossibleBoard    (char** board, struct PossibleMove* move);
 
-int Board_isPieceInSpecifiedColor(char** board, int x, int y, int color);
+int Board_evalPiece  (char** board, int x, int y, int color);
+
+int Board_getScore   (char** board, int color);
 
 struct LinkedList* Board_getPossibleMoves(char** board, int player);
 
