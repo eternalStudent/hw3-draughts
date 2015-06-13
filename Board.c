@@ -245,22 +245,22 @@ int isJumpPossible(char** board, int x, int y, int color){
  */
 int Board_getScore(char** board, int color){
 	int score = 0;
-	int win = 0;
-	int lose = 0;
+	int hasMoves = 0;
+	int opponentHasMoves = 0;
 	for (int x = 0; x < Board_SIZE; x++){
 		for (int y = 0; y < Board_SIZE; y++){		
-			win = isSingleStepPossible(board, x+1, y+1, color) 
+			hasMoves = isSingleStepPossible(board, x+1, y+1, color) 
 					|| isJumpPossible(board, x+1, y+1, color);
-			lose = isSingleStepPossible(board, x+1, y+1, !color) 
+			opponentHasMoves = isSingleStepPossible(board, x+1, y+1, !color) 
 					|| isJumpPossible(board, x+1, y+1, !color);
 			score += Board_evalPiece(board, x+1, y+1, color);
 		}
 	}
-	if (win){
-		return 100;
-	}	
-	if (lose){
+	if (!hasMoves){
 		return -100;
+	}	
+	if (!opponentHasMoves){
+		return 100;
 	} 
 	return score;
 }
