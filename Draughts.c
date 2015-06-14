@@ -331,6 +331,11 @@ int movePiece(char* str){
 	return exitcode;
 }
 
+/*
+ * Updates the global list of moves currently possible for the human player.
+ * 
+ * @return: 21 if any allocation errors occurred, 0 otherwise 
+ */
 int updatePossibleMoves(){
 	if (playerPossibleMoves){
 		LinkedList_free(playerPossibleMoves);
@@ -343,6 +348,11 @@ int updatePossibleMoves(){
 	return 0;
 }
 
+/*
+ * Main control function.
+ * 
+ * @return: -2 if the user input matched none of the legal commands, the exitcode returned by the relevant command's function otherwise
+ */
 int executeCommand(char* command){
 	int error;
 	command = strtok(command, "\n");
@@ -402,6 +412,11 @@ int executeCommand(char* command){
 	return -2;
 }
 
+/*
+ * Main function for printing all possible error messages.
+ * 
+ * @params: (error) - the exitcode returned by the main control function (executeCommand) 
+ */
 void printError(int error){
 	switch(error){
 		case (0):
@@ -435,6 +450,15 @@ void printError(int error){
 	}
 }
 
+/*
+ * An implementation of the minimax algorithm.
+ * 
+ * @params: (board) - the current state of the playing board.
+ *          (depth) - the depth of recursion specified by the player
+ *          (color) - the color of the player the algorithm is performed for
+ * 
+ * @return: the board as it looks after the best move for the player has been carried out               //should also return the move itself
+ */
 char** minimax(char** board, int depth, int color){
 	if (depth == 0){
 		return board;
@@ -462,6 +486,9 @@ char** minimax(char** board, int depth, int color){
 	return bestPossibleMove->board;
 }
 
+/*
+ * Performs the computer's turn by using the minimax algorithm, and then updates the list of moves currently possible for the human player.
+ */
 void computerTurn(){
 	char** bestBoard = minimax(board, maxRecursionDepth, AI);
 	Board_copy(board, bestBoard);

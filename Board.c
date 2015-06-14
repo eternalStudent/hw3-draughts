@@ -3,7 +3,11 @@
 #define BLACK 0
 #define WHITE 1
 
-
+/*
+ * Creates a new board structure.
+ *
+ * @return: the new board structured as a two-dimensional char array.
+ */
 char** Board_new(){
 	char** board = calloc(Board_SIZE, sizeof(char*));
 	if (!board){
@@ -65,6 +69,12 @@ int charToInt(char ch){
 	return ((int)ch)-96;
 }
 
+/*
+ * Checks if the input coordinates are within the range of the board's length and width.
+ *
+ * @params: (x, y) - the coordinates to be checked
+ * @return: 1 if the coordinates correspond to a valid position on the board, 0 otherwise
+ */
 static int isInRange(int x, int y){
 	if (x >= 1 && x <= Board_SIZE && y >= 1 && y <= Board_SIZE){
 		return 1;
@@ -72,18 +82,46 @@ static int isInRange(int x, int y){
 	return 0;
 }
 
+/*
+ * Checks if the input coordinates correspond to a black tile on the board.
+ *
+ * @params: (x, y) - the coordinates to be checked
+ * @return: 1 if the coordinates correspond to a black tile on the board, 0 otherwise
+ */
 static int isOnBlack(int x, int y){
 	return !((x+y)%2);
 }
 
+/*
+ * Checks if the input coordinates correspond to an empty tile on the board.
+ *
+ * @params: (x, y) - the coordinates to be checked
+ *			(board) - the board to be checked
+ * @return: 1 if the coordinates correspond to an empty tile on the board, 0 otherwise
+ */
 int Board_isEmpty(char** board, int x, int y){
 	return board[x-1][y-1] == Board_EMPTY;
 }
 
+/*
+ * Checks if the input coordinates correspond to a valid tile position on the board.
+ * That is, a position that is both within range and black.
+ *
+ * @params: (x, y) - the coordinates to be checked
+ *			(board) - the board to be checked
+ * @return: 1 if the coordinates correspond to a valid position on the board, 0 otherwise
+ */
 int Board_isValidPosition(char** board, int x, int y){
 	return (isInRange(x,y) && isOnBlack(x,y));
 }
 
+/*
+ * Checks if the input board is playable. Specifically, checks that the board is not empty,
+ * has pieces of both colors, and that no color has over 20 pieces.  
+ *
+ * @params: (board) - the board to be checked		
+ * @return: 1 if the board is playable, 0 otherwise
+ */
 int Board_isPlayable(char** board){
 	int countBlack = 0;
 	int countWhite = 0;
@@ -104,6 +142,11 @@ int Board_isPlayable(char** board){
 	return (!tooFew && !tooMany);
 }
 
+/*
+ * Scans the top and bottom rows of the board, and "crowns" the appropriate MAN pieces.  
+ *
+ * @params: (board) - the board to be checked		
+ */
 static void Board_crownPieces(char** board){
 	for (int x = 0; x<Board_SIZE; x++){
 		if (board[x][0] == Board_BLACK_MAN) {
@@ -115,6 +158,13 @@ static void Board_crownPieces(char** board){
 	}	
 }
 
+/*
+ * Removes the captured piece as part of a jump move.  
+ *
+ * @params: (board) - the board on which the move is played
+ *			(oldX, oldY) - the coordinates of the piece to be moved
+ *			(newX, newY) - the coordinates the piece will be moved to
+ */
 static void Board_removeCaptured(char** board, int oldX, int oldY, int newX, int newY){
 	if (abs(newX-oldX) > 1 && abs(newY-oldY) > 1){
 		int currX = oldX;
@@ -154,6 +204,12 @@ static void Board_move(char** board, char oldCh, int oldY, char newCh, int newY)
 	Board_removeCaptured(board, oldX, oldY, newX, newY);
 }
 
+/*
+ * Updates a board according to a possible move.
+ *
+ * @params: (board) - the board to be updated
+ *          (move) - the possible move to be carried out on the board 
+ */
 void Board_update(char** board, struct PossibleMove* move){
 	struct Tile* current = move->start;
 	struct LinkedList* moves = move->moves;
@@ -182,6 +238,13 @@ char** Board_getPossibleBoard(char** board, struct PossibleMove* move){
 	return possibleBoard;
 }
 
+/*
+ * Evaluates a single piece on the board according to the provided scoring function. 
+ *
+ * @params: (board) - the board that hosts the evaluated piece
+ *          (x,y) - the coordinates of the piece to be evaluated
+ *			(color) - the color of the player the scoring function is adjusted for.
+ */
 int Board_evalPiece(char** board, int x, int y, int color){
 	char piece = board[x-1][y-1];
 	int value = 0;
@@ -203,6 +266,14 @@ int Board_evalPiece(char** board, int x, int y, int color){
 	return value;
 }
 
+/*
+ * Checks if a piece currently has any possible single step moves.
+ *
+ * @params: (board) - the board to be checked
+ *          (x,y) - the coordinates of the piece to be checked
+ *			(color) - the color of the player the check is done for
+ * @return: 1 if the piece has a possible single step move, 0 otherwise
+ */
 int isSingleStepPossible(char** board, int x, int y, int color){
 	int forward = (color == BLACK)? -1: 1;
 	if (Board_evalPiece(board, x+1, y+1, color) <= 0){
@@ -219,6 +290,14 @@ int isSingleStepPossible(char** board, int x, int y, int color){
 	return 0;
 }
 
+/*
+ * Checks if a piece currently has any possible jump moves.
+ *
+ * @params: (board) - the board to be checked
+ *          (x,y) - the coordinates of the piece to be checked
+ *			(color) - the color of the player the check is done for
+ * @return: 1 if the piece has a possible jump move, 0 otherwise
+ */
 int isJumpPossible(char** board, int x, int y, int color){
 	if (Board_evalPiece(board, x+1, y+1, color) <= 0){
 		return 0;
@@ -265,6 +344,13 @@ int Board_getScore(char** board, int color){
 	return score;
 }
 
+/*
+ * Gets a list of all jump moves currently possible for a player.
+ *
+ * @params: (currentBoard) - the current state of the playing board
+ *			(color) - the color of the player whose moves are to be put in the list
+ * @return: a LinkedList struct of jump moves currently possible for the player 
+ */
 static struct LinkedList* getPossibleJumps (char** currentBoard, int color){
 	struct LinkedList* jumpMovesList = LinkedList_new(&PossibleMove_free);
 	
@@ -294,6 +380,13 @@ static struct LinkedList* getPossibleJumps (char** currentBoard, int color){
 	return jumpMovesList;
 }
 
+/*
+ * Gets a list of all single step moves currently possible for a player.
+ *
+ * @params: (currentBoard) - the current state of the playing board
+ *			(color) - the color of the player whose moves are to be put in the list
+ * @return: a LinkedList struct of single step moves currently possible for the player 
+ */
 static struct LinkedList* getPossibleSingleMoves (char** currentBoard, int color){
 	struct LinkedList* singleMovesList = LinkedList_new(&PossibleMove_free);
 	int forward = (color == BLACK) ? -1 : 1; /* for each player's different direction of "forward" */
@@ -319,15 +412,25 @@ static struct LinkedList* getPossibleSingleMoves (char** currentBoard, int color
 	return singleMovesList;
 }
 
+/*
+ * Main function for getting all of the moves currently possible for a player. 
+ *
+ * @params: (currentBoard) - the current state of the playing board
+ *			(color) - the color of the player whose moves are to be put in the list
+ * @return: a LinkedList struct of all moves currently possible for the player 
+ */
 struct LinkedList* Board_getPossibleMoves(char** board, int player){
 	struct LinkedList* jumpMovesList = getPossibleJumps(board, player);
-	if (LinkedList_length(jumpMovesList) != 0){ /* if jumps are possible, they are the only type of move possible */
+	if (LinkedList_length(jumpMovesList) != 0){ /* if jumps are possible, they are the only type of move legally possible */
 		return jumpMovesList;
 	}
 	struct LinkedList* singleMovesList = getPossibleSingleMoves(board, player);
 	return singleMovesList;
 }	
 
+/*
+ * Auxiliary function for printing the lines as part of printing the playing board.
+ */
 static void printLine(){
 	printf("  |");
 	for (int x = 1; x < Board_SIZE*4; x++){
@@ -356,6 +459,9 @@ void Board_print(char** board){
 	printf("\n");
 }
 
+/*
+ * Frees the structure.
+ */
 void Board_free(char** board){
 	for(int i = 0; i < Board_SIZE; i++){
 		free(board[i]);
