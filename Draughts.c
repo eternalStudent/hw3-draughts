@@ -70,7 +70,7 @@ void initialize(){
  */
 void freeGlobals(){
 	Board_free(board);
-	if (humanPossibleMoves){
+	if (humanPossibleMoves != NULL){
 		LinkedList_free(humanPossibleMoves);
 	}
 }
@@ -105,6 +105,7 @@ int setMinimaxDepth (char* str){
 		return 11;
 	}	
 	maxRecursionDepth = depth;
+	regfree(&r);
 	return 0;
 }
 
@@ -317,6 +318,7 @@ int movePiece(char* str){
 		Board_update(board, possibleMove);
 		exitcode = 0;
 		turn = !turn;
+		Board_print(board);
 		break;
 	}
 	regfree(&r);
@@ -330,21 +332,19 @@ int updatePossibleMoves(){
 	if (humanPossibleMoves){
 		LinkedList_free(humanPossibleMoves);
 	}
-	humanPossibleMoves = Board_getPossibleMoves(board, human);
 	
+	humanPossibleMoves = Board_getPossibleMoves(board, human);
 	if (allocationFailed(humanPossibleMoves)){
 		return 21;
 	}
 	return 0;
 }
 
-char* readCommand(){
-	char* command;
+void readCommand(char command[]){
 	if (fgets(command, 256, stdin) == NULL){
 		fprintf(stderr, "Error: standard function fgets has failed\n");
 		freeAndExit();
 	}
-	return command;
 }
 
 int executeCommand(char* command){
@@ -352,8 +352,7 @@ int executeCommand(char* command){
 	command = strtok(command, "\n");
 	if (state == SETTINGS){
 		if (strcmp(command, "quit") == 0){
-			freeGlobals();
-			exit(0);
+			freeAndExit();
 		}
 		if (strcmp(command, "clear") == 0){
 			Board_clear(board);
@@ -367,6 +366,9 @@ int executeCommand(char* command){
 			if (Board_isPlayable(board)){
 				state = GAME;
 				turn = WHITE;
+				if (human == WHITE){
+					printf("Enter your move:\n");
+				}
 				return updatePossibleMoves();
 			}
 			return 13;
@@ -431,8 +433,7 @@ void printError(int error){
 		case(17):
 			break;
 		case(21):
-			freeGlobals();
-			exit(0);
+			freeAndExit();
 		default:
 			printf("Illegal command, please try again\n");
 			break;
@@ -446,15 +447,27 @@ struct PossibleMove* minimax(struct PossibleMove* possibleMove, int depth, int c
 	char** board = possibleMove->board;
 	struct LinkedList* possibleMoves = Board_getPossibleMoves(board, color);
 	if (LinkedList_length(possibleMoves) == 0){
+		LinkedList_free(possibleMoves);
 		return possibleMove;
 	}
+	if (LinkedList_length(possibleMoves) == 1){
+		struct PossibleMove* onlyMove = (struct PossibleMove*)(possibleMoves->first->data);
+		free(possibleMoves->first);
+		free(possibleMoves);
+		return onlyMove;
+	}
+	
 	struct PossibleMove* bestPossibleMove;
 	int extremum = UNDEFINED;
 	struct Iterator iterator;
 	Iterator_init(&iterator, possibleMoves);
 	while (Iterator_hasNext(&iterator)) {
 		struct PossibleMove* currentPossibleMove = (struct PossibleMove*)Iterator_next(&iterator);
-		int score = Board_getScore( minimax(currentPossibleMove, !color, depth-1)->board, color ); 
+		struct PossibleMove* temp = minimax(currentPossibleMove, depth-1, color);
+		int score = Board_getScore(temp->board, color);
+		if (currentPossibleMove != temp){
+			PossibleMove_free(temp);
+		}		
 		if (extremum == UNDEFINED || 
 				(color != human && score >  extremum) || 
 				(color == human && score <  extremum) || 
@@ -464,23 +477,33 @@ struct PossibleMove* minimax(struct PossibleMove* possibleMove, int depth, int c
 			bestPossibleMove = currentPossibleMove;
 		}
 	}
+	struct PossibleMove* bestPossibleMoveClone = PossibleMove_clone(bestPossibleMove);
 	LinkedList_free(possibleMoves);
-	return bestPossibleMove;
+	return bestPossibleMoveClone;
 }
 
 void computerTurn(){
 	struct PossibleMove possibleMove;
 	possibleMove.board = board;
 	struct PossibleMove* bestPossibleMove = minimax(&possibleMove, maxRecursionDepth, !human);
+	printf("Computer: ");
 	PossibleMove_print(bestPossibleMove);
+	printf("\n");
 	Board_update(board, bestPossibleMove);
+	PossibleMove_free(bestPossibleMove);
 	printError(updatePossibleMoves());
 	turn = !turn;
+	Board_print(board);
 }
 
 void humanTurn(){
+	if (state == GAME){
+		printf("Enter your move:\n");
+	}
+	
 	while (turn == human){
-		char* command = readCommand();
+		char command[256];
+		readCommand(command);
 		int error = executeCommand(command);
 		printError(error);
 	}
@@ -498,10 +521,10 @@ int main(){
 		else{
 			computerTurn();
 		}
-		Board_print(board);
-		int gameOver = (Board_getScore(board, turn) == 100);
+		
+		gameOver = (Board_getScore(board, turn) == -100);
 	}
-	printf("%s player wins!\n", (turn == BLACK)? "Black": "White");
+	printf("%s player wins!\n", (turn == BLACK)? "White" : "Black");
 	freeGlobals();
 	return 0;
 }

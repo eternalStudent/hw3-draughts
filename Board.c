@@ -276,14 +276,14 @@ int Board_evalPiece(char** board, int x, int y, int color){
  */
 int isSingleStepPossible(char** board, int x, int y, int color){
 	int forward = (color == BLACK)? -1 : 1;
-	if (Board_evalPiece(board, x+1, y+1, color) <= 0){
+	if (Board_evalPiece(board, x, y, color) <= 0){
 		return 0;
 	} 
 	for (int i = -1; i <= 1; i += 2){
-		if (!isInRange(x+i+1, y+forward+1)){
+		if (!isInRange(x+i, y+forward)){
 			continue;
 		}
-		if(board[x+i][y+forward] == Board_EMPTY){
+		if(Board_isEmpty(board, x+i, y+forward)){
 			return 1;
 		}
 	}
@@ -299,16 +299,16 @@ int isSingleStepPossible(char** board, int x, int y, int color){
  * @return: 1 if the piece has a possible jump move, 0 otherwise
  */
 int isJumpPossible(char** board, int x, int y, int color){
-	if (Board_evalPiece(board, x+1, y+1, color) <= 0){
+	if (Board_evalPiece(board, x, y, color) <= 0){
 		return 0;
 	}
 	for (int i = -1; i <= 1; i += 2){
 		for (int j = -1; j <= 1; j += 2){
-			if (!isInRange(x+i+1,y+j+1) || !isInRange(x+2*i+1,y+2*j+1)){
+			if (!isInRange(x+i,y+j) || !isInRange(x+2*i,y+2*j)){
 				continue;
 			}
-			int enemyNearby = Board_evalPiece(board, x+i+1, y+i+1, !color) > 0;
-			int enemyIsCapturable = (board[x+2*i][y+2*j] == Board_EMPTY);
+			int enemyNearby = Board_evalPiece(board, x+i, y+j, !color) > 0;
+			int enemyIsCapturable = Board_isEmpty(board, x+2*i, y+2*j);
 			if(enemyNearby && enemyIsCapturable){
 				return 1;
 			}
@@ -327,20 +327,24 @@ int Board_getScore(char** board, int color){
 	int hasMoves = 0;
 	int opponentHasMoves = 0;
 	for (int x = 0; x < Board_SIZE; x++){
-		for (int y = 0; y < Board_SIZE; y++){		
-			hasMoves += isSingleStepPossible(board, x+1, y+1, color) 
-					|| isJumpPossible(board, x+1, y+1, color);
-			opponentHasMoves += isSingleStepPossible(board, x+1, y+1, !color) 
-					|| isJumpPossible(board, x+1, y+1, !color);
-			score += Board_evalPiece(board, x+1, y+1, color);
+		for (int y = 0; y < Board_SIZE; y++){
+			int value = Board_evalPiece(board, x+1, y+1, color);
+			hasMoves += (value > 0) && (isSingleStepPossible(board, x+1, y+1, color) 
+					|| isJumpPossible(board, x+1, y+1, color));
+			opponentHasMoves += (value < 0) && (isSingleStepPossible(board, x+1, y+1, !color) 
+					|| isJumpPossible(board, x+1, y+1, !color));
+			score += value;
 		}
 	}
 	if (!hasMoves){
+		printf("getScore returning -100, color is %d\n", color);
 		return -100;
 	}	
 	if (!opponentHasMoves){
+		printf("getScore returning 100, color is %d\n", color);
 		return 100;
-	} 
+	}
+	printf("getScore returning %d, score is %d\n",score, color);	
 	return score;
 }
 
@@ -393,9 +397,10 @@ static void populateJumpList(struct LinkedList* possibleJumpList, struct Possibl
 			}
 		}
 	}
-	//PossibleMove_free(move);
-	
-	if(!found){
+	if (found){
+		PossibleMove_free(move);
+	}
+	else{
 		LinkedList_add(possibleJumpList, move);
 	}	
 }
@@ -411,7 +416,7 @@ static struct LinkedList* getPossibleJumps (char** currentBoard, int player){
 	struct LinkedList* jumpMovesList = LinkedList_new(&PossibleMove_free);
 	
 	for (int x = 0; x < Board_SIZE; x++){
-		for (int y = 0; y < Board_SIZE; y++){
+		for (int y = 0; y < Board_SIZE; y++){			
 			if (Board_evalPiece(currentBoard, x+1, y+1, player) <= 0){
 				continue;
 			}
@@ -420,7 +425,7 @@ static struct LinkedList* getPossibleJumps (char** currentBoard, int player){
 					if (!isInRange(x+i+1,y+j+1) || !isInRange(x+2*i+1,y+2*j+1)){
 						continue;
 					}
-					int enemyNearby = Board_evalPiece(currentBoard, x+i+1, y+j+1, !player);
+					int enemyNearby = Board_evalPiece(currentBoard, x+i+1, y+j+1, player) < 0;
 					int enemyIsCapturable = (currentBoard[x+2*i][y+2*j] == Board_EMPTY);
 					if(enemyNearby && enemyIsCapturable){
 						struct Tile* destTile = Tile_new(x+2*i+1, y+2*j+1);
