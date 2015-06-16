@@ -10,7 +10,7 @@
  *          board - the board before the move
  * @return: NULL if any allocation errors occurred, the structure otherwise
  */
-struct PossibleMove* PossibleMove_new(int x, int y, struct LinkedList* moveList, char** board){
+struct PossibleMove* PossibleMove_new(int x, int y, struct LinkedList* steps, char** board){
 	struct PossibleMove* move;
 	move = (struct PossibleMove*)calloc(1, sizeof(struct PossibleMove));
 	if (!move){
@@ -21,20 +21,20 @@ struct PossibleMove* PossibleMove_new(int x, int y, struct LinkedList* moveList,
 		free(move);
 		return NULL;
 	}
-	move->moves = moveList;
+	move->steps = steps;
 	move->board = Board_getPossibleBoard(board, move);
 	return move;
 }
 
 int PossibleMove_equals(struct PossibleMove* this, struct PossibleMove* other){
 	int tile_equals = Tile_equals(this->start, other->start);
-	if (!tile_equals || LinkedList_length(this->moves) != LinkedList_length(other->moves)){
+	if (!tile_equals || LinkedList_length(this->steps) != LinkedList_length(other->steps)){
 		return 0;
 	}
 	struct Iterator it1;
-	Iterator_init(&it1, this->moves);
+	Iterator_init(&it1, this->steps);
 	struct Iterator it2;
-	Iterator_init(&it2, other->moves);
+	Iterator_init(&it2, other->steps);
 	while (Iterator_hasNext(&it1)){
 		struct Tile* curr1 = (struct Tile*)Iterator_next(&it1);
 		struct Tile* curr2 = (struct Tile*)Iterator_next(&it2);
@@ -55,7 +55,7 @@ struct PossibleMove* PossibleMove_concatenate(struct PossibleMove* initialMove, 
 	struct Tile* middleTile = nextMove->start;
 	LinkedList_add(newMoveList,middleTile);	
 	
-	struct LinkedList* nextMoveList = nextMove->moves;
+	struct LinkedList* nextMoveList = nextMove->steps;
 	struct Iterator iterator;
 	Iterator_init(&iterator, nextMoveList);
 	while(Iterator_hasNext(&iterator)){
@@ -91,7 +91,7 @@ void PossibleMove_print(struct PossibleMove* move){
 	Tile_print(move->start);
 	printf(" to ");
 	struct Iterator iterator;
-	Iterator_init(&iterator, move->moves);
+	Iterator_init(&iterator, move->steps);
 	while (Iterator_hasNext(&iterator)){
 		struct Tile* tile = (struct Tile*)Iterator_next(&iterator);
 		Tile_print(tile);
@@ -99,7 +99,7 @@ void PossibleMove_print(struct PossibleMove* move){
 }
 
 struct Tile* PossibleMove_getLastTile(struct PossibleMove* move){
-	struct LinkedList* moveList = move->moves;
+	struct LinkedList* moveList = move->steps;
 	struct Tile* lastTile = (struct Tile*)(moveList->last->data);
 	return lastTile;
 }
@@ -119,7 +119,7 @@ struct PossibleMove* PossibleMove_clone (struct PossibleMove* move){
 	}
 	clonedMove->start = clonedStart;
 	
-	struct LinkedList* originalMoveList = move->moves;
+	struct LinkedList* originalMoveList = move->steps;
 	struct LinkedList* clonedMoveList = LinkedList_new(&Tile_free);
 	
 	struct Iterator iterator;
@@ -135,7 +135,7 @@ struct PossibleMove* PossibleMove_clone (struct PossibleMove* move){
 		}
 		LinkedList_add(clonedMoveList, clonedTile);
 	}
-	clonedMove->moves = clonedMoveList;
+	clonedMove->steps = clonedMoveList;
 	
 	char** clonedBoard = Board_new();
 	if (!clonedBoard){
@@ -150,7 +150,7 @@ struct PossibleMove* PossibleMove_clone (struct PossibleMove* move){
 }
 
 int PossibleMove_numOfCaptures(struct PossibleMove* move){
-	return LinkedList_length(move->moves);
+	return LinkedList_length(move->steps);
 }
 
 
@@ -160,7 +160,7 @@ int PossibleMove_numOfCaptures(struct PossibleMove* move){
 void PossibleMove_free(void* data){
 	struct PossibleMove* move = (struct PossibleMove*) data;
 	Tile_free(move->start);
-	LinkedList_free(move->moves);
+	LinkedList_free(move->steps);
 	Board_free(move->board);
 	free(move);
 }

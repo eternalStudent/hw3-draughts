@@ -172,7 +172,7 @@ int removePiece(char* str){
 		regfree(&r);
 		return 12; 
 	}
-	board[x-1][y-1] = Board_EMPTY;
+	Board_remove(board, x, y);
 	regfree(&r);
 	return 0;
 }
@@ -234,21 +234,21 @@ int setPiece(char* str){
 	}
 	
 	char piece = getPiece(str, matches);
-	board[x-1][y-1] = piece;
+	Board_setPiece(board, x, y, piece);
 	regfree(&r);
 	return 0;
 }
 
-int populateMoves(struct LinkedList* moves, char* str){
+int populateSteps(struct LinkedList* steps, char* str){
 	char* token = strtok(str, "><");
 	while (token != NULL) {
 		int x = (int)token[0]-96;
 		int y = strtol(token+2,NULL,10);
 		if (!Board_isValidPosition(board, x, y)){
-			LinkedList_free(moves);
+			LinkedList_free(steps);
 			return 1;
 		}	
-		LinkedList_add(moves, Tile_new(x,y));
+		LinkedList_add(steps, Tile_new(x,y));
 		token = strtok(NULL, "><");
 	}	
 	return 0;
@@ -272,7 +272,7 @@ int movePiece(char* str){
 	int exitcode;
 	char* pattern = "^move\\s+<([a-z]),([0-9]+)>\\s+to\\s*((<[a-z],[0-9]+>)+)";
 	compile_regex(&r, pattern);
-	struct PossibleMove* possibleMove = NULL;
+	struct PossibleMove* move = NULL;
 	while(1){
 		if (regexec(&r, str, 5, matches, 0) != 0){
 			exitcode = 1;
@@ -292,38 +292,38 @@ int movePiece(char* str){
 		}
 		
 		//destination positions
-		struct LinkedList* moves = LinkedList_new(&Tile_free);
-		if (allocationFailed(moves)){
+		struct LinkedList* steps = LinkedList_new(&Tile_free);
+		if (allocationFailed(steps)){
 			exitcode = 21;
 			break;
 		}
 			
-		if (populateMoves(moves, str+matches[3].rm_so)){
+		if (populateSteps(steps, str+matches[3].rm_so)){
 			exitcode = 12;
 			break;
 		}
 		
 		//constructing the move structure
-		possibleMove = PossibleMove_new(x, y, moves, board);
-		if (allocationFailed(possibleMove)){
+		move = PossibleMove_new(x, y, steps, board);
+		if (allocationFailed(move)){
 			exitcode = 21;
 			break;
 		}
 		//making sure move is legal
-		if (!PossibleMoveList_contains(humanPossibleMoves, possibleMove)){
+		if (!PossibleMoveList_contains(humanPossibleMoves, move)){
 			exitcode = 15;
 			break;
 		}
 		//if all preconditions are met, the move is carried out
-		Board_update(board, possibleMove);
+		Board_update(board, move);
 		exitcode = 0;
 		turn = !turn;
 		Board_print(board);
 		break;
 	}
 	regfree(&r);
-	if (possibleMove != NULL){
-		PossibleMove_free(possibleMove);
+	if (move != NULL){
+		PossibleMove_free(move);
 	}
 	return exitcode;
 }
@@ -440,12 +440,12 @@ void printError(int error){
 	}
 }
 
-struct PossibleMove* minimax(struct PossibleMove* possibleMove, int depth, int color){
+struct PossibleMove* minimax(struct PossibleMove* possibleMove, int depth, int player){
 	if (depth == 0){
 		return possibleMove;
 	}
 	char** board = possibleMove->board;
-	struct LinkedList* possibleMoves = Board_getPossibleMoves(board, color);
+	struct LinkedList* possibleMoves = Board_getPossibleMoves(board, player);
 	if (LinkedList_length(possibleMoves) == 0){
 		LinkedList_free(possibleMoves);
 		return possibleMove;
@@ -463,14 +463,14 @@ struct PossibleMove* minimax(struct PossibleMove* possibleMove, int depth, int c
 	Iterator_init(&iterator, possibleMoves);
 	while (Iterator_hasNext(&iterator)) {
 		struct PossibleMove* currentPossibleMove = (struct PossibleMove*)Iterator_next(&iterator);
-		struct PossibleMove* temp = minimax(currentPossibleMove, depth-1, color);
-		int score = Board_getScore(temp->board, color);
+		struct PossibleMove* temp = minimax(currentPossibleMove, depth-1, player);
+		int score = Board_getScore(temp->board, player);
 		if (currentPossibleMove != temp){
 			PossibleMove_free(temp);
 		}		
 		if (extremum == UNDEFINED || 
-				(color != human && score >  extremum) || 
-				(color == human && score <  extremum) || 
+				(player != human && score >  extremum) || 
+				(player == human && score <  extremum) || 
 				(rand()%2       && score == extremum)
 			){
 			extremum = score;
@@ -485,12 +485,12 @@ struct PossibleMove* minimax(struct PossibleMove* possibleMove, int depth, int c
 void computerTurn(){
 	struct PossibleMove possibleMove;
 	possibleMove.board = board;
-	struct PossibleMove* bestPossibleMove = minimax(&possibleMove, maxRecursionDepth, !human);
+	struct PossibleMove* bestMove = minimax(&possibleMove, maxRecursionDepth, !human);
 	printf("Computer: ");
-	PossibleMove_print(bestPossibleMove);
+	PossibleMove_print(bestMove);
 	printf("\n");
-	Board_update(board, bestPossibleMove);
-	PossibleMove_free(bestPossibleMove);
+	Board_update(board, bestMove);
+	PossibleMove_free(bestMove);
 	printError(updatePossibleMoves());
 	turn = !turn;
 	Board_print(board);

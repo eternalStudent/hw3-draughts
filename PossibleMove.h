@@ -3,7 +3,7 @@
 
 struct PossibleMove{
 	struct Tile* start;
-	struct LinkedList* moves;
+	struct LinkedList* steps;
 	char** board;
 };
 
