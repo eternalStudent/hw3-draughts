@@ -19,6 +19,12 @@ void Board_copy      (char** dest, char** src);
 
 int  charToInt       (char x);
 
+void Board_setPiece(char** board, int x, int y, char piece);
+
+char Board_getPiece(char** board, int x, int y);
+
+char Board_remove(char** board, int x, int y);
+
 int  Board_isEmpty   (char** board, int x, int y);
 
 int  Board_isValidPosition (char** board, int x, int y);
