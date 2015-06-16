@@ -7,14 +7,14 @@
 #define MAX_ERROR_MSG 0x1000
 #define SETTINGS 0
 #define GAME     1
-#define MOVE    17
+#define UNDEFINED 101
 
 char** board;
-int player;
-int AI;
+int human;
 int maxRecursionDepth;
 int state;
-struct LinkedList* playerPossibleMoves;
+struct LinkedList* humanPossibleMoves;
+int turn;
 
 /*
  * Compiles regular expression.
@@ -58,11 +58,11 @@ void initialize(){
 		exit(0);
 	}
 	Board_init(board);
-	player = WHITE;
-	AI     = BLACK;
+	human = WHITE;
 	maxRecursionDepth = 1;
 	state = SETTINGS;
-	playerPossibleMoves = NULL;
+	humanPossibleMoves = NULL;
+	turn = human;
 }
 
 /*
@@ -70,12 +70,14 @@ void initialize(){
  */
 void freeGlobals(){
 	Board_free(board);
-	if (playerPossibleMoves){
-		LinkedList_free(playerPossibleMoves);
+	if (humanPossibleMoves){
+		LinkedList_free(humanPossibleMoves);
 	}
-	if (computerPossibleMoves){
-		LinkedList_free(computerPossibleMoves);
-	}
+}
+
+void freeAndExit(){
+	freeGlobals();
+	exit(0);
 }
 
 /* 
@@ -123,12 +125,8 @@ int setUserColor (char* str){
 	}
 	
 	int start = matches[1].rm_so;
-	if(str[start] == 'b'){
-		player = BLACK;
-		regfree(&r);
-		return 0;
-	}
-	player = WHITE;
+	human = (str[start] == 'b')? BLACK: WHITE;
+	turn = human;
 	regfree(&r);
 	return 0;
 }
@@ -240,16 +238,31 @@ int setPiece(char* str){
 	return 0;
 }
 
+int populateMoves(struct LinkedList* moves, char* str){
+	char* token = strtok(str, "><");
+	while (token != NULL) {
+		int x = (int)token[0]-96;
+		int y = strtol(token+2,NULL,10);
+		if (!Board_isValidPosition(board, x, y)){
+			LinkedList_free(moves);
+			return 1;
+		}	
+		LinkedList_add(moves, Tile_new(x,y));
+		token = strtok(NULL, "><");
+	}	
+	return 0;
+}
+
 /* 
  * Performs a move on the board according to input from the user.
  * The move can consist of a single step, or several steps.
  *
  * @params: the input command string
- * @return: 01 if the command didn't match,  
+ * @return: 00 if the move was carried out successfully
+ *          01 if the command didn't match,  
  *          12 if the user input an illegal position on the board,
  *          14 if the initial tile doesn't contain one of the player's pieces, 
  *          15 if the move itself is illegal, 
- *          17 if the move was carried out successfully
  *          21 if any allocation errors occurred
  */ 
 int movePiece(char* str){
@@ -272,7 +285,7 @@ int movePiece(char* str){
 			exitcode = 12;
 			break;
 		}
-		if (Board_evalPiece(board, x, y, player) <= 0){
+		if (Board_evalPiece(board, x, y, human) <= 0){
 			exitcode = 14;
 			break;
 		}
@@ -284,29 +297,10 @@ int movePiece(char* str){
 			break;
 		}
 			
-		char* destPosSection = (char*)calloc(strlen(str+matches[3].rm_so)+1, sizeof(char));
-		if (allocationFailed(destPosSection)){
-			exitcode = 21;
+		if (populateMoves(moves, str+matches[3].rm_so)){
+			exitcode = 12;
 			break;
 		}
-		
-		strcpy(destPosSection,str+matches[3].rm_so);
-		char* token;
-		token = strtok(destPosSection, "><");
-		while (token != NULL) {
-			int x = (int)token[0]-96;
-			int y = strtol(token+2,NULL,10);
-			if (!Board_isValidPosition(board, x, y)){
-				LinkedList_free(moves);
-				free(destPosSection);
-				regfree(&r);
-				return 12; // must return with number instead of setting exitcode and breaking,	because breakpoint is inside two loops
-			}	
-			struct Tile* nextMove = Tile_new(x,y);
-			LinkedList_add(moves, nextMove);
-			token = strtok(NULL, "><");
-		}	
-		free(destPosSection);
 		
 		//constructing the move structure
 		possibleMove = PossibleMove_new(x, y, moves, board);
@@ -315,13 +309,14 @@ int movePiece(char* str){
 			break;
 		}
 		//making sure move is legal
-		if (!PossibleMoveList_contains(playerPossibleMoves, possibleMove)){
+		if (!PossibleMoveList_contains(humanPossibleMoves, possibleMove)){
 			exitcode = 15;
 			break;
 		}
 		//if all preconditions are met, the move is carried out
 		Board_update(board, possibleMove);
-		exitcode = 17;
+		exitcode = 0;
+		turn = !turn;
 		break;
 	}
 	regfree(&r);
@@ -331,28 +326,27 @@ int movePiece(char* str){
 	return exitcode;
 }
 
-/*
- * Updates the global list of moves currently possible for the human player.
- * 
- * @return: 21 if any allocation errors occurred, 0 otherwise 
- */
 int updatePossibleMoves(){
-	if (playerPossibleMoves){
-		LinkedList_free(playerPossibleMoves);
+	if (humanPossibleMoves){
+		LinkedList_free(humanPossibleMoves);
 	}
-	playerPossibleMoves = Board_getPossibleMoves(board, player);
+	humanPossibleMoves = Board_getPossibleMoves(board, human);
 	
-	if (allocationFailed(playerPossibleMoves)){
+	if (allocationFailed(humanPossibleMoves)){
 		return 21;
 	}
 	return 0;
 }
 
-/*
- * Main control function.
- * 
- * @return: -2 if the user input matched none of the legal commands, the exitcode returned by the relevant command's function otherwise
- */
+char* readCommand(){
+	char* command;
+	if (fgets(command, 256, stdin) == NULL){
+		fprintf(stderr, "Error: standard function fgets has failed\n");
+		freeAndExit();
+	}
+	return command;
+}
+
 int executeCommand(char* command){
 	int error;
 	command = strtok(command, "\n");
@@ -372,6 +366,7 @@ int executeCommand(char* command){
 		if (strcmp(command, "start") == 0){
 			if (Board_isPlayable(board)){
 				state = GAME;
+				turn = WHITE;
 				return updatePossibleMoves();
 			}
 			return 13;
@@ -395,13 +390,12 @@ int executeCommand(char* command){
 	}
 	else{
 		if (strcmp(command, "get_moves") == 0){
-			PossibleMoveList_print(playerPossibleMoves);
+			PossibleMoveList_print(humanPossibleMoves);
 			return 0;
 		}
 		
 		if (strcmp(command, "quit") == 0){
-			freeGlobals();
-			exit(0);
+			freeAndExit();
 		}
 		
 		error = movePiece(command);
@@ -412,11 +406,6 @@ int executeCommand(char* command){
 	return -2;
 }
 
-/*
- * Main function for printing all possible error messages.
- * 
- * @params: (error) - the exitcode returned by the main control function (executeCommand) 
- */
 void printError(int error){
 	switch(error){
 		case (0):
@@ -450,82 +439,69 @@ void printError(int error){
 	}
 }
 
-/*
- * An implementation of the minimax algorithm.
- * 
- * @params: (board) - the current state of the playing board.
- *          (depth) - the depth of recursion specified by the player
- *          (color) - the color of the player the algorithm is performed for
- * 
- * @return: the board as it looks after the best move for the player has been carried out               //should also return the move itself
- */
-char** minimax(char** board, int depth, int color){
+struct PossibleMove* minimax(struct PossibleMove* possibleMove, int depth, int color){
 	if (depth == 0){
-		return board;
+		return possibleMove;
 	}
-	if (abs(Board_getScore(board, color)) == 100){
-		return board;
-	}
+	char** board = possibleMove->board;
 	struct LinkedList* possibleMoves = Board_getPossibleMoves(board, color);
+	if (LinkedList_length(possibleMoves) == 0){
+		return possibleMove;
+	}
 	struct PossibleMove* bestPossibleMove;
-	int extremum = 101;
+	int extremum = UNDEFINED;
 	struct Iterator iterator;
 	Iterator_init(&iterator, possibleMoves);
 	while (Iterator_hasNext(&iterator)) {
 		struct PossibleMove* currentPossibleMove = (struct PossibleMove*)Iterator_next(&iterator);
-		int score = Board_getScore( minimax(currentPossibleMove->board, !color, depth-1), color ); 
-		if (extremum == 101 || 
-				(color == AI     && score >  extremum) || 
-				(color == player && score <  extremum) || 
-				(rand()%2        && score == extremum)
+		int score = Board_getScore( minimax(currentPossibleMove, !color, depth-1)->board, color ); 
+		if (extremum == UNDEFINED || 
+				(color != human && score >  extremum) || 
+				(color == human && score <  extremum) || 
+				(rand()%2       && score == extremum)
 			){
 			extremum = score;
 			bestPossibleMove = currentPossibleMove;
 		}
 	}
-	return bestPossibleMove->board;
+	LinkedList_free(possibleMoves);
+	return bestPossibleMove;
 }
 
-/*
- * Performs the computer's turn by using the minimax algorithm, and then updates the list of moves currently possible for the human player.
- */
 void computerTurn(){
-	char** bestBoard = minimax(board, maxRecursionDepth, AI);
-	Board_copy(board, bestBoard);
+	struct PossibleMove possibleMove;
+	possibleMove.board = board;
+	struct PossibleMove* bestPossibleMove = minimax(&possibleMove, maxRecursionDepth, !human);
+	PossibleMove_print(bestPossibleMove);
+	Board_update(board, bestPossibleMove);
 	printError(updatePossibleMoves());
+	turn = !turn;
+}
+
+void humanTurn(){
+	while (turn == human){
+		char* command = readCommand();
+		int error = executeCommand(command);
+		printError(error);
+	}
 }
 
 int main(){
 	initialize();
 	printf("Welcome to Draughts!\n");
 	printf("Enter game settings:\n");
-	char command[256];
-	while (1){
-		if (fgets(command, 256, stdin) == NULL){
-			fprintf(stderr, "Error: standard function fgets has failed\n");
-			break;
+	int gameOver = 0;
+	while (!gameOver){
+		if (turn == human){
+			humanTurn();
 		}
-		if (strcmp(command, "\n") == 0){
-			continue;
-		}
-		int exitcode = executeCommand(command);
-		printError(exitcode);
-		if (state == GAME && exitcode == MOVE){
-			Board_print(board);
-			int playerWon = (Board_getScore(board, player) == 100);
-			if (playerWon){
-				printf("%s player wins!\n", (player == BLACK)? "Black": "White");
-				break;
-			}
+		else{
 			computerTurn();
-			Board_print(board);
-			int computerWon = (Board_getScore(board, AI) == 100);
-			if (computerWon){
-				printf("%s player wins!\n", (AI == BLACK)? "Black": "White");
-				break;
-			}
 		}
+		Board_print(board);
+		int gameOver = (Board_getScore(board, turn) == 100);
 	}
+	printf("%s player wins!\n", (turn == BLACK)? "Black": "White");
 	freeGlobals();
 	return 0;
 }
