@@ -275,7 +275,7 @@ int Board_evalPiece(char** board, int x, int y, int color){
  * @return: 1 if the piece has a possible single step move, 0 otherwise
  */
 int isSingleStepPossible(char** board, int x, int y, int color){
-	int forward = (color == BLACK)? -1: 1;
+	int forward = (color == BLACK)? -1 : 1;
 	if (Board_evalPiece(board, x+1, y+1, color) <= 0){
 		return 0;
 	} 
@@ -303,7 +303,7 @@ int isJumpPossible(char** board, int x, int y, int color){
 		return 0;
 	}
 	for (int i = -1; i <= 1; i += 2){
-		for (int j = -1; j<= 1; j +=2){
+		for (int j = -1; j <= 1; j += 2){
 			if (!isInRange(x+i+1,y+j+1) || !isInRange(x+2*i+1,y+2*j+1)){
 				continue;
 			}
@@ -344,6 +344,62 @@ int Board_getScore(char** board, int color){
 	return score;
 }
 
+static int Board_getColorByTile(char** board, struct Tile* tile){
+	int x = tile->x-97;
+	int y = tile->y-1 ;
+	char piece = board[x][y];
+	if (piece == Board_BLACK_KING || piece == Board_BLACK_MAN){
+		return BLACK;
+	}
+	if (piece == Board_WHITE_KING || piece == Board_WHITE_MAN){
+		return WHITE;
+	}
+	return -1;
+}
+
+static void populateJumpList(struct LinkedList* possibleJumpList, struct PossibleMove* move){
+	struct Tile* lastStep = PossibleMove_getLastTile(move);
+	char** currentBoard = move->board;
+	int x = (int)(lastStep->x-97);
+	int y = lastStep->y-1;
+	
+	//checking if another jump is possible after current last jump
+	int found = 0;
+	for (int i = -1; i <= 1; i += 2){
+		for (int j = -1; j <= 1; j +=2){
+			if (!isInRange(x+i+1,y+j+1) || !isInRange(x+2*i+1,y+2*j+1)){
+				continue;
+			}
+			struct Tile* currentLastTile = PossibleMove_getLastTile(move);
+			int player = Board_getColorByTile(move->board, currentLastTile);
+			int enemyNearby = (Board_evalPiece(currentBoard, x+i+1, y+j+1, player) < 0);
+			int enemyIsCapturable = (currentBoard[x+2*i][y+2*j] == Board_EMPTY);
+			//printf("i is %d, j is %d, enemyNearby is %d, enemyIsCapturable is %d, piece is %c\n", i,j, enemyNearby, enemyIsCapturable, currentBoard[x+i][y+j]);		
+			if(enemyNearby && enemyIsCapturable){ //found another possible jump after current last step
+				struct PossibleMove* cloneOfCurrentMove = PossibleMove_clone(move);
+				struct LinkedList* currentMovesList = cloneOfCurrentMove->moves;
+				struct Tile* extraTile = Tile_new(x+2*i+1, y+2*j+1);
+				LinkedList_add(currentMovesList, extraTile);
+				
+				struct Tile* currentLastTile = PossibleMove_getLastTile(move);
+				char oldX = currentLastTile->x;
+				int oldY = currentLastTile->y;
+				char newX = extraTile->x;
+				char newY = extraTile->y;
+				Board_move(cloneOfCurrentMove->board,oldX,oldY,newX,newY);
+				
+				populateJumpList(possibleJumpList, cloneOfCurrentMove);			
+				found = 1;
+			}
+		}
+	}
+	//PossibleMove_free(move);
+	
+	if(!found){
+		LinkedList_add(possibleJumpList, move);
+	}	
+}
+
 /*
  * Gets a list of all jump moves currently possible for a player.
  *
@@ -351,27 +407,27 @@ int Board_getScore(char** board, int color){
  *			(color) - the color of the player whose moves are to be put in the list
  * @return: a LinkedList struct of jump moves currently possible for the player 
  */
-static struct LinkedList* getPossibleJumps (char** currentBoard, int color){
+static struct LinkedList* getPossibleJumps (char** currentBoard, int player){
 	struct LinkedList* jumpMovesList = LinkedList_new(&PossibleMove_free);
 	
 	for (int x = 0; x < Board_SIZE; x++){
 		for (int y = 0; y < Board_SIZE; y++){
-			if (Board_evalPiece(currentBoard, x+1, y+1, color) <= 0){
+			if (Board_evalPiece(currentBoard, x+1, y+1, player) <= 0){
 				continue;
 			}
 			for (int i = -1; i <= 1; i += 2){
-				for (int j = -1; j<= 1; j +=2){
+				for (int j = -1; j <= 1; j += 2){
 					if (!isInRange(x+i+1,y+j+1) || !isInRange(x+2*i+1,y+2*j+1)){
 						continue;
 					}
-					int enemyNearby = Board_evalPiece(currentBoard, x+i+1, y+i+1, !color) > 0;
+					int enemyNearby = Board_evalPiece(currentBoard, x+i+1, y+j+1, !player);
 					int enemyIsCapturable = (currentBoard[x+2*i][y+2*j] == Board_EMPTY);
 					if(enemyNearby && enemyIsCapturable){
 						struct Tile* destTile = Tile_new(x+2*i+1, y+2*j+1);
 						struct LinkedList* individualJumpMovesList = LinkedList_new(&Tile_free);
 						LinkedList_add(individualJumpMovesList, destTile);
 						struct PossibleMove* newJumpMove = PossibleMove_new(x+1, y+1, individualJumpMovesList, currentBoard);
-						LinkedList_add(jumpMovesList, newJumpMove);
+						populateJumpList(jumpMovesList, newJumpMove);
 					}
 				}
 			}
@@ -392,7 +448,7 @@ static struct LinkedList* getPossibleSingleMoves (char** currentBoard, int color
 	int forward = (color == BLACK) ? -1 : 1; /* for each player's different direction of "forward" */
 	for (int x = 0; x < Board_SIZE; x++){
 		for (int y = 0; y < Board_SIZE; y++){
-			if (Board_evalPiece(currentBoard, x+1, y+1, color) <= 0){
+			if (Board_evalPiece(currentBoard, x+1, y+1, color) <= 0){ //this tile doesn't contain one of this player's pieces
 				continue;
 			} 
 			for (int i = -1; i <= 1; i += 2){
@@ -422,8 +478,31 @@ static struct LinkedList* getPossibleSingleMoves (char** currentBoard, int color
 struct LinkedList* Board_getPossibleMoves(char** board, int player){
 	struct LinkedList* jumpMovesList = getPossibleJumps(board, player);
 	if (LinkedList_length(jumpMovesList) != 0){ /* if jumps are possible, they are the only type of move legally possible */
-		return jumpMovesList;
+		int maxCaptures = 0;
+		
+		struct Iterator iterator;
+		Iterator_init(&iterator, jumpMovesList);
+		while(Iterator_hasNext(&iterator)){ //finding the maximum number of possible captures in a single move
+			struct PossibleMove* currMove = (struct PossibleMove*)(Iterator_next(&iterator));
+			int currNumOfCaptures = PossibleMove_numOfCaptures(currMove);
+			if(currNumOfCaptures > maxCaptures){
+				maxCaptures = currNumOfCaptures;
+			}
+		}			
+		
+		//trimming the possible jump moves list so it contains only jumps that result in the maximum number of captures
+		struct LinkedList* trimmedJumpMovesList = LinkedList_new(&PossibleMove_free);
+		struct Iterator secondIterator;
+		Iterator_init(&secondIterator, jumpMovesList);
+		while(Iterator_hasNext(&secondIterator)){
+			struct PossibleMove* currMove = (struct PossibleMove*)(Iterator_next(&secondIterator));
+			if(PossibleMove_numOfCaptures(currMove) == maxCaptures){
+				LinkedList_add(trimmedJumpMovesList, currMove);
+			}
+		}
+		return trimmedJumpMovesList;
 	}
+	LinkedList_free(jumpMovesList);
 	struct LinkedList* singleMovesList = getPossibleSingleMoves(board, player);
 	return singleMovesList;
 }	

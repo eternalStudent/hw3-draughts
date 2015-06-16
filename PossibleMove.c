@@ -46,6 +46,44 @@ int PossibleMove_equals(struct PossibleMove* this, struct PossibleMove* other){
 }
 
 /* 
+ * Concatenates two consecutive, contiguous possible moves.
+ * Example: (a->b) + (b->c) = a->b->c
+ */ 
+struct PossibleMove* PossibleMove_concatenate(struct PossibleMove* initialMove, struct PossibleMove* nextMove, char** currentBoard){
+	struct Tile* initialTile = initialMove->start;
+	struct LinkedList* newMoveList = LinkedList_new(&Tile_free);
+	struct Tile* middleTile = nextMove->start;
+	LinkedList_add(newMoveList,middleTile);	
+	
+	struct LinkedList* nextMoveList = nextMove->moves;
+	struct Iterator iterator;
+	Iterator_init(&iterator, nextMoveList);
+	while(Iterator_hasNext(&iterator)){
+		struct Tile* extraTile = (struct Tile*)(Iterator_next(&iterator));
+		LinkedList_add(newMoveList, extraTile);
+	}
+	struct PossibleMove* resMove = PossibleMove_new((initialTile->x)-96,initialTile->y, newMoveList, currentBoard);
+	
+	return resMove;
+}
+
+/* 
+ * Concatenates a single Possible Move with a list of possible moves that can be performed after it 
+ * Example: (a->b) + [(b->c), (b->d), (b->e)] = [(a->b->c), (a->b->d), (a->b->e)]
+ */ 
+struct LinkedList* PossibleMove_concatenateWithList(struct PossibleMove* initialMove, struct LinkedList* followingMoves, char** currentBoard){
+	struct LinkedList* resMoveList = LinkedList_new(&PossibleMove_free);
+	struct Iterator iterator;
+	Iterator_init(&iterator, followingMoves);
+	while(Iterator_hasNext(&iterator)){
+		struct PossibleMove* currMove = (struct PossibleMove*)(Iterator_next(&iterator));
+		struct PossibleMove* concatenatedMove = PossibleMove_concatenate(initialMove,currMove,currentBoard);
+		LinkedList_add(resMoveList, concatenatedMove);
+	}
+	return resMoveList;
+}
+
+/* 
  * Prints the structure in the format: "move <x,y> to <i,j>[<k,l>...]".
  */
 void PossibleMove_print(struct PossibleMove* move){
@@ -59,6 +97,62 @@ void PossibleMove_print(struct PossibleMove* move){
 		Tile_print(tile);
 	}
 }
+
+struct Tile* PossibleMove_getLastTile(struct PossibleMove* move){
+	struct LinkedList* moveList = move->moves;
+	struct Tile* lastTile = (struct Tile*)(moveList->last->data);
+	return lastTile;
+}
+
+struct PossibleMove* PossibleMove_clone (struct PossibleMove* move){
+	struct PossibleMove* clonedMove;
+	clonedMove = (struct PossibleMove*)calloc(1, sizeof(struct PossibleMove));
+	if (!clonedMove){
+		return NULL;
+	}	
+	
+	struct Tile* originalStart = move->start;
+	struct Tile* clonedStart = Tile_clone(originalStart);
+	if (!(clonedStart)){
+		free(clonedMove);
+		return NULL;
+	}
+	clonedMove->start = clonedStart;
+	
+	struct LinkedList* originalMoveList = move->moves;
+	struct LinkedList* clonedMoveList = LinkedList_new(&Tile_free);
+	
+	struct Iterator iterator;
+	Iterator_init(&iterator,originalMoveList);
+	while(Iterator_hasNext(&iterator)){
+		struct Tile* currOriginalTile = (struct Tile*)(Iterator_next(&iterator));
+		struct Tile* clonedTile = Tile_clone(currOriginalTile);
+		if (!clonedTile){
+			free(clonedMove);
+			Tile_free(clonedStart);
+			LinkedList_free(clonedMoveList);
+			return NULL;
+		}
+		LinkedList_add(clonedMoveList, clonedTile);
+	}
+	clonedMove->moves = clonedMoveList;
+	
+	char** clonedBoard = Board_new();
+	if (!clonedBoard){
+		free(clonedMove);
+		Tile_free(clonedStart);
+		LinkedList_free(clonedMoveList);
+		return NULL;
+	}
+	Board_copy(clonedBoard,move->board);
+	clonedMove->board = clonedBoard;
+	return clonedMove;
+}
+
+int PossibleMove_numOfCaptures(struct PossibleMove* move){
+	return LinkedList_length(move->moves);
+}
+
 
 /* 
  * Frees the structure.

@@ -32,6 +32,18 @@ void Tile_print(struct Tile* tile){
 	printf("<%c,%d>", tile->x, tile->y);
 }
 
+
+struct Tile* Tile_clone (struct Tile* tile){
+	int x = tile->x-96;
+	int y = tile->y;
+	struct Tile* clone = Tile_new(x,y);
+	if (!clone){
+		return NULL;
+	}
+	return clone;
+}
+
+
 /*
  * Frees the structure.
  */
