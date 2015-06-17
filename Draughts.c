@@ -319,8 +319,6 @@ int movePiece(char* str){
 		}
 		//if all preconditions are met, the move is carried out
 		Board_update(board, move);
-		LinkedList_free(humanPossibleMoves);
-		humanPossibleMoves = NULL;
 		exitcode = 0;
 		turn = !turn;
 		Board_print(board);

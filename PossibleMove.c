@@ -125,6 +125,10 @@ struct PossibleMove* PossibleMove_clone (struct PossibleMove* move){
 	return clonedMove;
 }
 
+int PossibleMove_numOfCaptures(struct PossibleMove* move){
+	return LinkedList_length(move->steps);
+}
+
 /* 
  * Frees the structure.
  */

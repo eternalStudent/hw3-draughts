@@ -454,8 +454,8 @@ static void populateJumpList(struct LinkedList* possibleJumps, struct PossibleMo
 			if (!isInRange(x+i,y+j) || !isInRange(x+2*i,y+2*j)){
 				continue;
 			}
-			struct Tile* currentLastTile = PossibleMove_getLastTile(possibleMove);
-			int player = Board_getColorByTile(possibleMove->board, currentLastTile);
+			struct Tile* currentLastStep = PossibleMove_getLastStep(possibleMove);
+			int player = Board_getColorByTile(possibleMove->board, currentLastStep);
 			int enemyNearby = (Board_evalPiece(board, x+i, y+j, player) < 0);
 			int enemyIsCapturable = Board_isEmpty(board,x+2*i, y+2*j);
 			int justCrowned = (player == WHITE && y == Board_SIZE) || (player == BLACK && y == 1);
@@ -465,8 +465,8 @@ static void populateJumpList(struct LinkedList* possibleJumps, struct PossibleMo
 				struct Tile* extraTile = Tile_new(x+2*i, y+2*j);
 				LinkedList_add(currentSteps, extraTile);
 				
-				char oldX = currentLastTile->x;
-				int oldY = currentLastTile->y;
+				char oldX = currentLastStep->x;
+				int oldY = currentLastStep->y;
 				int newX = extraTile->x;
 				int newY = extraTile->y;
 				Board_move(currentMoveClone->board, oldX, oldY, newX, newY);
@@ -599,6 +599,7 @@ struct LinkedList* Board_getPossibleMoves(char** board, int player){
 				LinkedList_add(trimmedJumpMoves, currMove);
 			}
 		}
+		LinkedList_free(possibleJumpMoves);
 		return trimmedJumpMoves;
 	}
 	LinkedList_free(possibleJumpMoves);

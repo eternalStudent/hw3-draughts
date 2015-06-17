@@ -15,8 +15,8 @@ void PossibleMove_print(struct PossibleMove*);
 
 struct Tile* PossibleMove_getLastStep(struct PossibleMove* move);
 
+int PossibleMove_numOfCaptures(struct PossibleMove* move);
+
 struct PossibleMove* PossibleMove_clone (struct PossibleMove* move);
 
 void PossibleMove_free(void*);
-
-void PossibleMoveList_print(struct LinkedList*);
