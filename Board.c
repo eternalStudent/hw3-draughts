@@ -65,10 +65,6 @@ void Board_copy(char** dest, char** src){
 	}
 }
 
-int charToInt(char ch){
-	return ((int)ch)-96;
-}
-
 void Board_setPiece(char** board, int x, int y, char piece){
 	board[x-1][y-1] = piece;
 }
@@ -208,10 +204,8 @@ static void Board_removeCaptured(char** board, int oldX, int oldY, int newX, int
  * @params: (oldX, oldY) - the coordinates of the piece to be moved
  *          (newX, newY) - the coordinates the piece will be moved to
  */
-static void Board_move(char** board, char oldCh, int oldY, char newCh, int newY){
-	int oldX = charToInt(oldCh);
-	int newX = charToInt(newCh);
-	char piece = board[oldX-1][oldY-1];
+static void Board_move(char** board, int oldX, int oldY, int newX, int newY){
+	char piece = Board_getPiece(board, oldX, oldY);
 	Board_removePiece(board, oldX, oldY);
 	Board_setPiece(board, newX, newY, piece);
 	
@@ -289,7 +283,7 @@ int Board_evalPiece(char** board, int x, int y, int player){
  *			(player) - the player the check is done for
  * @return: 1 if the piece has a possible single step move, 0 otherwise
  */
-int isSingleStepPossible(char** board, int x, int y, int player){
+static int isSingleStepPossible(char** board, int x, int y, int player){
 	int forward = (player == BLACK)? -1 : 1;
 	if (Board_evalPiece(board, x, y, player) <= 0){
 		return 0;
@@ -313,7 +307,7 @@ int isSingleStepPossible(char** board, int x, int y, int player){
  *			(player) - the player the check is done for
  * @return: 1 if the piece has a possible jump move, 0 otherwise
  */
-int isJumpPossible(char** board, int x, int y, int player){
+static int isJumpPossible(char** board, int x, int y, int player){
 	if (Board_evalPiece(board, x, y, player) <= 0){
 		return 0;
 	}
@@ -361,8 +355,8 @@ int Board_getScore(char** board, int player){
 }
 
 static int Board_getColorByTile(char** board, struct Tile* tile){
-	int x = tile->x-97;
-	int y = tile->y-1 ;
+	int x = tile->x;
+	int y = tile->y ;
 	char piece = Board_getPiece(board, x, y);
 	if (piece == Board_BLACK_KING || piece == Board_BLACK_MAN){
 		return BLACK;
@@ -376,7 +370,7 @@ static int Board_getColorByTile(char** board, struct Tile* tile){
 static void populateJumpList(struct LinkedList* possibleJumps, struct PossibleMove* possibleMove){
 	struct Tile* lastStep = PossibleMove_getLastTile(possibleMove);
 	char** board = possibleMove->board;
-	int x = (int)(lastStep->x-96);
+	int x = lastStep->x;
 	int y = lastStep->y;
 	
 	//checking if another jump is possible after current last jump
@@ -398,8 +392,8 @@ static void populateJumpList(struct LinkedList* possibleJumps, struct PossibleMo
 				
 				char oldX = currentLastTile->x;
 				int oldY = currentLastTile->y;
-				char newX = extraTile->x;
-				char newY = extraTile->y;
+				int newX = extraTile->x;
+				int newY = extraTile->y;
 				Board_move(currentMoveClone->board, oldX, oldY, newX, newY);
 				
 				populateJumpList(possibleJumps, currentMoveClone);			
@@ -413,6 +407,22 @@ static void populateJumpList(struct LinkedList* possibleJumps, struct PossibleMo
 	else{
 		LinkedList_add(possibleJumps, possibleMove);
 	}	
+}
+
+static struct Tile* canKingCaptureInDirection(char** board, struct Tile* tile, int dirX, int dirY){
+	int x = tile->x;
+	int y = tile->y;
+	player = Board_getColorByTile(board, tile);
+	int i = 1;
+	while(isInRange(x+(i+1)*dirX, y+(i+1)*dirY)){
+		int enemyNearby = Board_evalPiece(board, x+i*dirX, y+i*dirY, player)<0;
+		int enemyIsCapturable = Board_isEmpty(board, x+(i+1)*dirX, y+(i+1)*dirY);
+		if (enemyNearby && enemyIsCapturable){
+			return 1;
+		}
+		i++;
+	}
+	return 0;
 }
 
 /*
@@ -435,7 +445,7 @@ static struct LinkedList* getPossibleJumps (char** board, int player){
 					if (!isInRange(x+i,y+j) || !isInRange(x+2*i,y+2*j)){
 						continue;
 					}
-					int enemyNearby = Board_evalPiece(board, x+i+1, y+j+1, player) < 0;
+					int enemyNearby = Board_evalPiece(board, x+i, y+j, player) < 0;
 					int enemyIsCapturable = Board_isEmpty(board, x+2*i, y+2*j);
 					if(enemyNearby && enemyIsCapturable){
 						struct Tile* destTile = Tile_new(x+2*i, y+2*j);

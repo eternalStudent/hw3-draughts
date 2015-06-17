@@ -46,44 +46,6 @@ int PossibleMove_equals(struct PossibleMove* this, struct PossibleMove* other){
 }
 
 /* 
- * Concatenates two consecutive, contiguous possible moves.
- * Example: (a->b) + (b->c) = a->b->c
- */ 
-struct PossibleMove* PossibleMove_concatenate(struct PossibleMove* initialMove, struct PossibleMove* nextMove, char** currentBoard){
-	struct Tile* initialTile = initialMove->start;
-	struct LinkedList* newMoveList = LinkedList_new(&Tile_free);
-	struct Tile* middleTile = nextMove->start;
-	LinkedList_add(newMoveList,middleTile);	
-	
-	struct LinkedList* nextMoveList = nextMove->steps;
-	struct Iterator iterator;
-	Iterator_init(&iterator, nextMoveList);
-	while(Iterator_hasNext(&iterator)){
-		struct Tile* extraTile = (struct Tile*)(Iterator_next(&iterator));
-		LinkedList_add(newMoveList, extraTile);
-	}
-	struct PossibleMove* resMove = PossibleMove_new((initialTile->x)-96,initialTile->y, newMoveList, currentBoard);
-	
-	return resMove;
-}
-
-/* 
- * Concatenates a single Possible Move with a list of possible moves that can be performed after it 
- * Example: (a->b) + [(b->c), (b->d), (b->e)] = [(a->b->c), (a->b->d), (a->b->e)]
- */ 
-struct LinkedList* PossibleMove_concatenateWithList(struct PossibleMove* initialMove, struct LinkedList* followingMoves, char** currentBoard){
-	struct LinkedList* resMoveList = LinkedList_new(&PossibleMove_free);
-	struct Iterator iterator;
-	Iterator_init(&iterator, followingMoves);
-	while(Iterator_hasNext(&iterator)){
-		struct PossibleMove* currMove = (struct PossibleMove*)(Iterator_next(&iterator));
-		struct PossibleMove* concatenatedMove = PossibleMove_concatenate(initialMove,currMove,currentBoard);
-		LinkedList_add(resMoveList, concatenatedMove);
-	}
-	return resMoveList;
-}
-
-/* 
  * Prints the structure in the format: "move <x,y> to <i,j>[<k,l>...]".
  */
 void PossibleMove_print(struct PossibleMove* move){

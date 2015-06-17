@@ -16,7 +16,7 @@ struct Tile* Tile_new(int x, int y){
 	if (!tile){
 		return NULL;
 	}
-	tile->x = (char)x+96;
+	tile->x = x;
 	tile->y = y;
 	return tile;
 }
@@ -29,12 +29,12 @@ int Tile_equals(struct Tile* this, struct Tile* other){
  * Prints the tile in the format: "<x,y>".
  */
 void Tile_print(struct Tile* tile){
-	printf("<%c,%d>", tile->x, tile->y);
+	printf("<%c,%d>", tile->x+96, tile->y);
 }
 
 
 struct Tile* Tile_clone (struct Tile* tile){
-	int x = tile->x-96;
+	int x = tile->x;
 	int y = tile->y;
 	struct Tile* clone = Tile_new(x,y);
 	if (!clone){

@@ -4,6 +4,10 @@ struct LinkedList* PossibleMoveList_new(){
 	return LinkedList_new(&PossibleMove_free);
 }
 
+struct PossibleMove* PossibleMoveList_first(struct LinkedList* list){
+	return (struct PossibleMove*)LinkedList_first(list);
+}
+
 void PossibleMoveList_print(struct LinkedList* list){
 	struct Iterator iterator;
 	Iterator_init(&iterator, list);

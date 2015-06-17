@@ -17,8 +17,6 @@ void Board_clear     (char** board);
 
 void Board_copy      (char** dest, char** src);
 
-int  charToInt       (char x);
-
 void Board_setPiece(char** board, int x, int y, char piece);
 
 char Board_getPiece(char** board, int x, int y);
@@ -36,10 +34,6 @@ void Board_update    (char** board, struct PossibleMove* move);
 char** Board_getPossibleBoard    (char** board, struct PossibleMove* move);
 
 int Board_evalPiece  (char** board, int x, int y, int color);
-
-int isSingleStepPossible(char** board, int x, int y, int color);
-
-int isJumpPossible(char** board, int x, int y, int color);
 
 int Board_getScore   (char** board, int color);
 

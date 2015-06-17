@@ -1,7 +1,7 @@
 #include <regex.h>
 
 struct Tile{
-	char x;
+	int x;
 	int y;
 };
 

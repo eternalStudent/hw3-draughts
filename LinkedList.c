@@ -60,21 +60,14 @@ int LinkedList_add(struct LinkedList* list, void* data){
 }
 
 /* 
- * Concatenates two separate Linked Lists.
- */
-int LinkedList_concatenate(struct LinkedList* firstList, struct LinkedList* secondList){
-	firstList->last->next = secondList->first;
-	firstList->last = secondList->last;
-	firstList->length = LinkedList_length(firstList) + LinkedList_length(secondList);
-	LinkedList_free(secondList); /* second list structure no longer relevant */
-	return 0;
-}
-
-/* 
  * @return: the number of elements in the list
  */
 int LinkedList_length(struct LinkedList* list){
 	return list->length;
+}
+
+void* LinkedList_first(struct LinkedList* list){
+	return list->first->data;
 }
 
 /* 
@@ -85,6 +78,22 @@ void LinkedList_free(struct LinkedList* list){
 	while (node != NULL){
 		struct ListNode* next = node->next;
 		list->freeFunc(node->data);
+		free(node);
+		node = next;
+	}
+	free(list);
+}
+
+/* 
+ * Frees the list from memory, all but for one specified element.
+ */
+void LinkedList_freeAllButOne(struct LinkedList* list, void* data){
+	struct ListNode* node = list->first;
+	while (node != NULL){
+		struct ListNode* next = node->next;
+		if (data != node->data){
+			list->freeFunc(node->data);
+		}	
 		free(node);
 		node = next;
 	}

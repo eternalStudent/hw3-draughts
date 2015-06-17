@@ -451,9 +451,8 @@ struct PossibleMove* minimax(struct PossibleMove* possibleMove, int depth, int p
 		return possibleMove;
 	}
 	if (LinkedList_length(possibleMoves) == 1){
-		struct PossibleMove* onlyMove = (struct PossibleMove*)(possibleMoves->first->data);
-		free(possibleMoves->first);
-		free(possibleMoves);
+		struct PossibleMove* onlyMove = PossibleMoveList_first(possibleMoves);
+		LinkedList_freeAllButOne(possibleMoves, onlyMove);
 		return onlyMove;
 	}
 	
@@ -477,9 +476,8 @@ struct PossibleMove* minimax(struct PossibleMove* possibleMove, int depth, int p
 			bestPossibleMove = currentPossibleMove;
 		}
 	}
-	struct PossibleMove* bestPossibleMoveClone = PossibleMove_clone(bestPossibleMove);
-	LinkedList_free(possibleMoves);
-	return bestPossibleMoveClone;
+	LinkedList_freeAllButOne(possibleMoves, bestPossibleMove);
+	return bestPossibleMove;
 }
 
 void computerTurn(){
