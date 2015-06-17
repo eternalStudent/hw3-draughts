@@ -294,6 +294,20 @@ static int Board_getColorByTile(char** board, struct Tile* tile){
 	return Board_getColor(board, tile->x, tile->y);
 }
 
+static struct Tile* canKingCaptureInDirection(char** board, int x, int y, int dirX, int dirY){
+	int player = Board_getColor(board, x, y);
+	int i = 1;
+	while(isInRange(x+(i+1)*dirX, y+(i+1)*dirY)){
+		int enemyNearby = Board_evalPiece(board, x+i*dirX, y+i*dirY, player)<0;
+		int enemyIsCapturable = Board_isEmpty(board, x+(i+1)*dirX, y+(i+1)*dirY);
+		if (enemyNearby && enemyIsCapturable){
+			return Tile_new(x+(i+1)*dirX, y+(i+1)*dirY);
+		}
+		i++;
+	}
+	return NULL;
+}
+
 /*
  * Checks if a piece currently has any possible single step moves.
  *
@@ -307,12 +321,21 @@ static int isSingleStepPossible(char** board, int x, int y, int player){
 	if (Board_evalPiece(board, x, y, player) <= 0){
 		return 0;
 	} 
-	for (int i = -1; i <= 1; i += 2){
-		if (!isInRange(x+i, y+forward)){
-			continue;
-		}
-		if(Board_isEmpty(board, x+i, y+forward)){
-			return 1;
+	for (int sideward = -1; sideward <= 1; sideward += 2){
+		for (int k = -Board_SIZE; k <= Board_SIZE; k++){
+			if (!isInRange(x+k*sideward, y+k)){
+				continue;
+			}
+			int pieceIsKing = Board_evalPiece(board, x, y, player) == 3;
+			if (!pieceIsKing && k != forward){
+				continue;
+			}
+			if(Board_isEmpty(board, x+k*sideward, y+k)){
+				return 1;
+			}
+			if (!pieceIsKing && k == forward){
+				break;
+			}
 		}
 	}
 	return 0;
@@ -332,8 +355,16 @@ static int isJumpPossible(char** board, int x, int y, int player){
 	}
 	for (int i = -1; i <= 1; i += 2){
 		for (int j = -1; j <= 1; j += 2){
-			if (!isInRange(x+i,y+j) || !isInRange(x+2*i,y+2*j)){
+			if (!isInRange(x+2*i,y+2*j)){
 				continue;
+			}
+			int pieceIsKing = Board_evalPiece(board, x, y, player) == 3;
+			if (pieceIsKing){
+				struct Tile* dest = canKingCaptureInDirection(board, x, y, i, j);
+				if (dest){
+					Tile_free(dest);
+					return 1;
+				}
 			}
 			int enemyNearby = Board_evalPiece(board, x+i, y+j, !player) > 0;
 			int enemyIsCapturable = Board_isEmpty(board, x+2*i, y+2*j);
@@ -357,6 +388,9 @@ int Board_getScore(char** board, int player){
 	for (int x = 1; x <= Board_SIZE; x++){
 		for (int y = 1; y <= Board_SIZE; y++){
 			int value = Board_evalPiece(board, x, y, player);
+			if (value == 0){
+				continue;
+			}
 			hasMoves += (value > 0) && (isSingleStepPossible(board, x, y, player) 
 					|| isJumpPossible(board, x, y, player));
 			opponentHasMoves += (value < 0) && (isSingleStepPossible(board, x, y, !player) 
@@ -414,20 +448,6 @@ static void populateJumpList(struct LinkedList* possibleJumps, struct PossibleMo
 	else{
 		LinkedList_add(possibleJumps, possibleMove);
 	}	
-}
-
-static struct Tile* canKingCaptureInDirection(char** board, int x, int y, int dirX, int dirY){
-	int player = Board_getColor(board, x, y);
-	int i = 1;
-	while(isInRange(x+(i+1)*dirX, y+(i+1)*dirY)){
-		int enemyNearby = Board_evalPiece(board, x+i*dirX, y+i*dirY, player)<0;
-		int enemyIsCapturable = Board_isEmpty(board, x+(i+1)*dirX, y+(i+1)*dirY);
-		if (enemyNearby && enemyIsCapturable){
-			return Tile_new(x+(i+1)*dirX, y+(i+1)*dirY);
-		}
-		i++;
-	}
-	return NULL;
 }
 
 /*
@@ -492,20 +512,24 @@ static struct LinkedList* getPossibleSingleMoves (char** board, int player){
 				continue;
 			} 
 			for (int sideward = -1; sideward <= 1; sideward += 2){
-				int k = 1;
-				while (isInRange(x+k*sideward, y+k*forward)){
-					int pieceIsKing = Board_evalPiece(board, x, y, player) == 3;
-					if (!pieceIsKing && k > 1){
-						break;
+				for (int k = -Board_SIZE; k <= Board_SIZE; k++){
+					if (!isInRange(x+k*sideward, y+k)){
+						continue;
 					}	
-					if(Board_isEmpty(board, x+k*sideward, y+k*forward)){
-						struct Tile* destTile = Tile_new(x+k*sideward, y+k*forward);
+					int pieceIsKing = Board_evalPiece(board, x, y, player) == 3;
+					if (!pieceIsKing && k != forward){
+						continue;
+					}	
+					if(Board_isEmpty(board, x+k*sideward, y+k)){
+						struct Tile* destTile = Tile_new(x+k*sideward, y+k);
 						struct LinkedList* singleSteps = LinkedList_new(&Tile_free);
 						LinkedList_add(singleSteps, destTile);
 						struct PossibleMove* possibleSingleMove = PossibleMove_new(x, y, singleSteps, board);
 						LinkedList_add(possibleSingleMoves, possibleSingleMove);
 					}
-					k++;
+					if (!pieceIsKing && k == forward){
+						break;
+					}
 				}
 			}
 		}
