@@ -418,11 +418,11 @@ static struct Tile* canKingCaptureInDirection(char** board, struct Tile* tile, i
 		int enemyNearby = Board_evalPiece(board, x+i*dirX, y+i*dirY, player)<0;
 		int enemyIsCapturable = Board_isEmpty(board, x+(i+1)*dirX, y+(i+1)*dirY);
 		if (enemyNearby && enemyIsCapturable){
-			return 1;
+			return Tile_new(x+(i+1)*dirX, y+(i+1)*dirY);
 		}
 		i++;
 	}
-	return 0;
+	return NULL;
 }
 
 /*
