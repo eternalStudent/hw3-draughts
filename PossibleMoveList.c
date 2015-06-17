@@ -1,13 +1,24 @@
 #include "PossibleMoveList.h"
 
+/*
+ * Creates new LinkedList instant of PossibleMoves.
+ *
+ * @return: NULL if any allocation errors occurred, the list otherwise
+ */
 struct LinkedList* PossibleMoveList_new(){
 	return LinkedList_new(&PossibleMove_free);
 }
 
+/*
+ * @return: the first element in the list
+ */
 struct PossibleMove* PossibleMoveList_first(struct LinkedList* list){
 	return (struct PossibleMove*)LinkedList_first(list);
 }
 
+/*
+ * Prints the list.
+ */
 void PossibleMoveList_print(struct LinkedList* list){
 	struct Iterator iterator;
 	Iterator_init(&iterator, list);
@@ -18,6 +29,12 @@ void PossibleMoveList_print(struct LinkedList* list){
 	}
 }
 
+/*
+ * Check whether a certain PossibleMove instant is in the list.
+ *
+ * @params: (move) - a pointer to the element to be checked
+ * @return: 0 (false) if no such element found, 1 (true) otherwise
+ */
 int PossibleMoveList_contains(struct LinkedList* list, struct PossibleMove* move){
 	struct Iterator iterator;
 	Iterator_init(&iterator, list);
@@ -30,6 +47,9 @@ int PossibleMoveList_contains(struct LinkedList* list, struct PossibleMove* move
 	return 0;
 }
 
+/* 
+ * Frees the list.
+ */
 void PossibleMoveList_free(struct LinkedList* list){
 	LinkedList_free(list);
 }

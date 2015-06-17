@@ -54,8 +54,8 @@ void Board_clear(char** board){
 /*
  * Populates a board according to another board.
  *
- * @params: dest - a pointer to the board to be populated, 
- *          src  - a pointer to the board according to whom dest will be populated
+ * @params: (dest) - a pointer to the board to be populated, 
+ *          (src)  - a pointer to the board according to whom (dest) will be populated
  */
 void Board_copy(char** dest, char** src){
 	for (int x = 0; x < Board_SIZE; x++){
@@ -65,14 +65,32 @@ void Board_copy(char** dest, char** src){
 	}
 }
 
+/*
+ * Places a piece in a specified position on the board.
+ *
+ * @params: (x, y)  - the coordinates of the position to be populated
+ *          (piece) - the piece to be placed on the board.
+ */
 void Board_setPiece(char** board, int x, int y, char piece){
 	board[x-1][y-1] = piece;
 }
 
+/*
+ * Retrieves a piece from a specified position on the board.
+ *
+ * @params: (x, y)  - the coordinates of the position from which to retrieve the piece
+ * @return: the piece in the specified position
+ */
 char Board_getPiece(char** board, int x, int y){
 	return board[x-1][y-1];
 }
 
+/*
+ * Removes a piece from a specified position on the board.
+ *
+ * @params: (x, y) - the coordinates of the position from which the piece will be removed
+ * @return: the removed piece
+ */
 char Board_removePiece(char** board, int x, int y){
 	char piece = Board_getPiece(board, x, y);
 	board[x-1][y-1] = Board_EMPTY;
@@ -80,10 +98,10 @@ char Board_removePiece(char** board, int x, int y){
 }
 
 /*
- * Checks if the input coordinates are within the range of the board's length and width.
+ * Checks whether the input coordinates are within the range of the board's length and width.
  *
  * @params: (x, y) - the coordinates to be checked
- * @return: 1 if the coordinates correspond to a valid position on the board, 0 otherwise
+ * @return: 1 (ture) if the coordinates correspond to a valid position on the board, 0 (false) otherwise
  */
 static int isInRange(int x, int y){
 	if (x >= 1 && x <= Board_SIZE && y >= 1 && y <= Board_SIZE){
@@ -93,44 +111,42 @@ static int isInRange(int x, int y){
 }
 
 /*
- * Checks if the input coordinates correspond to a black tile on the board.
+ * Checks whether the input coordinates correspond to a black tile on the board.
  *
  * @params: (x, y) - the coordinates to be checked
- * @return: 1 if the coordinates correspond to a black tile on the board, 0 otherwise
+ * @return: 1 (true) if the coordinates correspond to a black tile on the board, 0 (false) otherwise
  */
 static int isOnBlack(int x, int y){
 	return !((x+y)%2);
 }
 
 /*
- * Checks if the input coordinates correspond to an empty tile on the board.
+ * Checks whether the input coordinates correspond to an empty tile on the board.
  *
  * @params: (x, y) - the coordinates to be checked
- *			(board) - the board to be checked
- * @return: 1 if the coordinates correspond to an empty tile on the board, 0 otherwise
+ * @return: 1 (true) if the coordinates correspond to an empty tile on the board, 0 (false) otherwise
  */
 int Board_isEmpty(char** board, int x, int y){
 	return board[x-1][y-1] == Board_EMPTY;
 }
 
 /*
- * Checks if the input coordinates correspond to a valid tile position on the board.
+ * Checks whether the input coordinates correspond to a valid tile position on the board.
  * That is, a position that is both within range and black.
  *
  * @params: (x, y) - the coordinates to be checked
- *			(board) - the board to be checked
- * @return: 1 if the coordinates correspond to a valid position on the board, 0 otherwise
+ * @return: 1 (true) if the coordinates correspond to a valid position on the board, 0 (false) otherwise
  */
 int Board_isValidPosition(char** board, int x, int y){
 	return (isInRange(x,y) && isOnBlack(x,y));
 }
 
 /*
- * Checks if the input board is playable. Specifically, checks that the board is not empty,
+ * Checks whether the input board is playable. Specifically, checks that the board is not empty,
  * has pieces of both colors, and that no color has over 20 pieces.  
  *
  * @params: (board) - the board to be checked		
- * @return: 1 if the board is playable, 0 otherwise
+ * @return: 1 (true) if the board is playable, 0 (false) otherwise
  */
 int Board_isPlayable(char** board){
 	int countBlack = 0;
@@ -154,9 +170,7 @@ int Board_isPlayable(char** board){
 }
 
 /*
- * Scans the top and bottom rows of the board, and "crowns" the appropriate MAN pieces.  
- *
- * @params: (board) - the board to be checked		
+ * Scans the top and bottom rows of the board, and "crowns" the appropriate MAN pieces.  	
  */
 static void Board_crownPieces(char** board){
 	for (int x = 1; x <= Board_SIZE; x++){
@@ -172,8 +186,7 @@ static void Board_crownPieces(char** board){
 /*
  * Removes the captured piece as part of a jump move.  
  *
- * @params: (board) - the board on which the move is played
- *			(oldX, oldY) - the coordinates of the piece to be moved
+ * @params: (oldX, oldY) - the coordinates of the piece to be moved
  *			(newX, newY) - the coordinates the piece will be moved to
  */
 static void Board_removeCaptured(char** board, int oldX, int oldY, int newX, int newY){
@@ -220,8 +233,7 @@ static int Board_move(char** board, int oldX, int oldY, int newX, int newY){
 /*
  * Updates a board according to a possible move.
  *
- * @params: (board) - the board to be updated
- *          (move) - the move to be carried out on the board 
+ * @params: (move) - the move to be carried out on the board 
  */
 void Board_update(char** board, struct PossibleMove* move){
 	struct Tile* current = move->start;
@@ -238,7 +250,7 @@ void Board_update(char** board, struct PossibleMove* move){
 /*
  * Creates a board representing the state of the board after a possible move has been carried out.
  *
- * @params: move - a pointer to the move to be carried out.
+ * @params: (possibleMove) - a pointer to the move to be carried out.
  * @return: NULL if any allocation errors occurred, the new board otherwise
  */
 char** Board_getPossibleBoard(char** board, struct PossibleMove* possibleMove){
@@ -254,8 +266,7 @@ char** Board_getPossibleBoard(char** board, struct PossibleMove* possibleMove){
 /*
  * Evaluates a single piece on the board according to the provided scoring function. 
  *
- * @params: (board) - the board that hosts the evaluated piece
- *          (x,y) - the coordinates of the piece to be evaluated
+ * @params: (x,y) - the coordinates of the piece to be evaluated
  *			(color) - the color of the player the scoring function is adjusted for.
  */
 int Board_evalPiece(char** board, int x, int y, int player){
@@ -279,6 +290,12 @@ int Board_evalPiece(char** board, int x, int y, int player){
 	return value;
 }
 
+/*
+ * Determines the color of a piece in a given position.
+ *
+ * @params: (x, y) the coordinates of the given position
+ * @return: -1 if the position is empty, the color of the piece otherwise
+ */
 static int Board_getColor(char** board, int x, int y){
 	char piece = Board_getPiece(board, x, y);
 	if (piece == Board_BLACK_KING || piece == Board_BLACK_MAN){
@@ -290,10 +307,23 @@ static int Board_getColor(char** board, int x, int y){
 	return -1;
 }
 
+/*
+ * Determines the color of a piece in a given tile.
+ *
+ * @params: (tile) - a pointer to the tile on which the piece is
+ * @return: -1 if the position is empty, the color of the piece otherwise
+ */
 static int Board_getColorByTile(char** board, struct Tile* tile){
 	return Board_getColor(board, tile->x, tile->y);
 }
 
+/*
+ * Checks whether a king in a given position can capture an enemy in a given direction
+ *
+ * @params: (x, y) - the coordinates of the given position
+ *          (dirX, dirY) - the coordinates if the direction
+ * @return: NULL if no such enemy exists, the tile of the enemy otherwise
+ */
 static struct Tile* canKingCaptureInDirection(char** board, int x, int y, int dirX, int dirY){
 	int player = Board_getColor(board, x, y);
 	int i = 1;
@@ -309,12 +339,11 @@ static struct Tile* canKingCaptureInDirection(char** board, int x, int y, int di
 }
 
 /*
- * Checks if a piece currently has any possible single step moves.
+ * Checks whether a piece currently has any possible single step moves.
  *
- * @params: (board) - the board to be checked
- *          (x,y) - the coordinates of the piece to be checked
+ * @params: (x,y) - the coordinates of the piece to be checked
  *			(player) - the player the check is done for
- * @return: 1 if the piece has a possible single step move, 0 otherwise
+ * @return: 1 (true) if the piece has a possible single step move, 0 (false) otherwise
  */
 static int isSingleStepPossible(char** board, int x, int y, int player){
 	int forward = (player == BLACK)? -1 : 1;
@@ -342,12 +371,11 @@ static int isSingleStepPossible(char** board, int x, int y, int player){
 }
 
 /*
- * Checks if a piece currently has any possible jump moves.
+ * Checks whether a piece currently has any possible jump moves.
  *
- * @params: (board) - the board to be checked
- *          (x,y) - the coordinates of the piece to be checked
+ * @params: (x,y) - the coordinates of the piece to be checked
  *			(player) - the player the check is done for
- * @return: 1 if the piece has a possible jump move, 0 otherwise
+ * @return: 1 (true) if the piece has a possible jump move, 0 (false) otherwise
  */
 static int isJumpPossible(char** board, int x, int y, int player){
 	if (Board_evalPiece(board, x, y, player) <= 0){
@@ -407,8 +435,14 @@ int Board_getScore(char** board, int player){
 	return score;
 }
 
+/*
+ * Populates the list of possible jumps, recursively.
+ *
+ * @params: (possibleJumps) - the list to be populated
+ *          (possibleMove) - the move that parts of it will be populated in the list.
+ */
 static void populateJumpList(struct LinkedList* possibleJumps, struct PossibleMove* possibleMove){
-	struct Tile* lastStep = PossibleMove_getLastTile(possibleMove);
+	struct Tile* lastStep = PossibleMove_getLastStep(possibleMove);
 	char** board = possibleMove->board;
 	int x = lastStep->x;
 	int y = lastStep->y;
@@ -444,17 +478,15 @@ static void populateJumpList(struct LinkedList* possibleJumps, struct PossibleMo
 	}
 	if (found){
 		PossibleMove_free(possibleMove);
+		return;
 	}
-	else{
-		LinkedList_add(possibleJumps, possibleMove);
-	}	
+	LinkedList_add(possibleJumps, possibleMove);	
 }
 
 /*
- * Gets a list of all jump moves currently possible for a player.
+ * Retrieves a list of all jump moves currently possible for a player.
  *
- * @params: (board) - the current state of the playing board
- *			(player) - the player whose moves are to be put in the list
+ * @params: (player) - the player whose moves are to be put in the list
  * @return: a LinkedList struct of jump moves currently possible for the player 
  */
 static struct LinkedList* getPossibleJumps (char** board, int player){
@@ -499,9 +531,8 @@ static struct LinkedList* getPossibleJumps (char** board, int player){
 /*
  * Gets a list of all single step moves currently possible for a player.
  *
- * @params: (board) - the current state of the playing board
- *			(player) - the player whose moves are to be put in the list
- * @return: a LinkedList struct of single step moves currently possible for the player 
+ * @params: (player) - the player whose moves are to be put in the list
+ * @return: a list of single step moves currently possible for the player 
  */
 static struct LinkedList* getPossibleSingleMoves (char** board, int player){
 	struct LinkedList* possibleSingleMoves = LinkedList_new(&PossibleMove_free);
@@ -540,9 +571,8 @@ static struct LinkedList* getPossibleSingleMoves (char** board, int player){
 /*
  * Main function for getting all of the moves currently possible for a player. 
  *
- * @params: (board) - the current state of the playing board
- *			(player) - the player whose moves are to be put in the list
- * @return: a LinkedList struct of all moves currently possible for the player 
+ * @params: (player) - the player whose moves are to be put in the list
+ * @return: a list of all moves currently possible for the player 
  */
 struct LinkedList* Board_getPossibleMoves(char** board, int player){
 	struct LinkedList* possibleJumpMoves = getPossibleJumps(board, player);

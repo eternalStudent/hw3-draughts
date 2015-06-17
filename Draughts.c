@@ -19,8 +19,8 @@ int turn;
 /*
  * Compiles regular expression.
  *
- * @params: r          - a pointer to a regex type
- *          regex_text - the regex to be compiled
+ * @params: (r) - a pointer to a regex type
+ *          (regex_text) - the regex to be compiled
  * @return: 1 if the expression is not a regex, 0 otherwise
  */
 int compile_regex(regex_t* r, const char* regex_text){
@@ -37,7 +37,7 @@ int compile_regex(regex_t* r, const char* regex_text){
 /*
  * Checks whether an allocation has failed
  * 
- * @params: ptr - a pointer to the data that was allocated
+ * @params: (ptr) - a pointer to the data that was allocated
  * @return: true (1) if the allocation has failed, false (0) otherwise 
  */
 int allocationFailed(void* ptr){
@@ -75,6 +75,9 @@ void freeGlobals(){
 	}
 }
 
+/*
+ * Frees the allocated global variables and exit the program.
+ */
 void freeAndExit(){
 	freeGlobals();
 	exit(0);
@@ -316,6 +319,8 @@ int movePiece(char* str){
 		}
 		//if all preconditions are met, the move is carried out
 		Board_update(board, move);
+		LinkedList_free(humanPossibleMoves);
+		humanPossibleMoves = NULL;
 		exitcode = 0;
 		turn = !turn;
 		Board_print(board);
@@ -328,9 +333,15 @@ int movePiece(char* str){
 	return exitcode;
 }
 
+/*
+ * Updates the global variable (humanPossibleMoves).
+ *
+ * @return: 21 if any allocation errors occurred, 0 otherwise
+ */
 int updatePossibleMoves(){
 	if (humanPossibleMoves){
 		LinkedList_free(humanPossibleMoves);
+		humanPossibleMoves = NULL;
 	}
 	
 	humanPossibleMoves = Board_getPossibleMoves(board, human);
@@ -340,6 +351,12 @@ int updatePossibleMoves(){
 	return 0;
 }
 
+
+/*
+ * Populates a command string to a pointer read from the user.
+ *
+ * @params: (command) - the string to be populated
+ */
 void readCommand(char command[]){
 	if (fgets(command, 256, stdin) == NULL){
 		fprintf(stderr, "Error: standard function fgets has failed\n");
@@ -347,6 +364,12 @@ void readCommand(char command[]){
 	}
 }
 
+/*
+ * Executes a command given by the user
+ *
+ * @params: (command) - the command given by the user
+ * @return: relevant exitcode
+ */
 int executeCommand(char* command){
 	int error;
 	command = strtok(command, "\n");
@@ -408,6 +431,11 @@ int executeCommand(char* command){
 	return -2;
 }
 
+/*
+ * Prints relevant error message.
+ *
+ * @params: (error) - the exitcode of the error
+ */
 void printError(int error){
 	switch(error){
 		case (0):
@@ -440,6 +468,9 @@ void printError(int error){
 	}
 }
 
+/*
+ * The minimax AI algorithm.
+ */
 struct PossibleMove* minimax(struct PossibleMove* possibleMove, int depth, int player){
 	if (depth == 0){
 		return possibleMove;
@@ -480,6 +511,9 @@ struct PossibleMove* minimax(struct PossibleMove* possibleMove, int depth, int p
 	return bestPossibleMove;
 }
 
+/*
+ * The computer turn procedure.
+ */
 void computerTurn(){
 	struct PossibleMove possibleMove;
 	possibleMove.board = board;
@@ -494,6 +528,9 @@ void computerTurn(){
 	Board_print(board);
 }
 
+/*
+ * The human turn procedure
+ */
 void humanTurn(){
 	if (state == GAME){
 		printf("Enter your move:\n");

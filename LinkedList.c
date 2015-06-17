@@ -66,6 +66,9 @@ int LinkedList_length(struct LinkedList* list){
 	return list->length;
 }
 
+/*
+ * @return: the first element in the list
+ */
 void* LinkedList_first(struct LinkedList* list){
 	return list->first->data;
 }

@@ -26,6 +26,12 @@ struct PossibleMove* PossibleMove_new(int x, int y, struct LinkedList* steps, ch
 	return move;
 }
 
+/*
+ * Checks whether a PossibleMove struct represents the same move.
+ *
+ * @params: (other) - a pointer to the struct to be checked
+ * @return: 1 (true) if both of the tiles represent the same move, 0 (false) otherwise
+ */
 int PossibleMove_equals(struct PossibleMove* this, struct PossibleMove* other){
 	int tile_equals = Tile_equals(this->start, other->start);
 	if (!tile_equals || LinkedList_length(this->steps) != LinkedList_length(other->steps)){
@@ -60,12 +66,20 @@ void PossibleMove_print(struct PossibleMove* move){
 	}
 }
 
-struct Tile* PossibleMove_getLastTile(struct PossibleMove* move){
+/*
+ * @return: the last step of the move
+ */
+struct Tile* PossibleMove_getLastStep(struct PossibleMove* move){
 	struct LinkedList* moveList = move->steps;
-	struct Tile* lastTile = (struct Tile*)(moveList->last->data);
-	return lastTile;
+	struct Tile* lastStep = (struct Tile*)(moveList->last->data);
+	return lastStep;
 }
 
+/*
+ * Deep-clones the move.
+ *
+ * @return: NULL if any allocation errors occurred, the cloned tile otherwise
+ */
 struct PossibleMove* PossibleMove_clone (struct PossibleMove* move){
 	struct PossibleMove* clonedMove;
 	clonedMove = (struct PossibleMove*)calloc(1, sizeof(struct PossibleMove));
@@ -110,11 +124,6 @@ struct PossibleMove* PossibleMove_clone (struct PossibleMove* move){
 	clonedMove->board = clonedBoard;
 	return clonedMove;
 }
-
-int PossibleMove_numOfCaptures(struct PossibleMove* move){
-	return LinkedList_length(move->steps);
-}
-
 
 /* 
  * Frees the structure.

@@ -1,7 +1,11 @@
 #include "Iterator.h"
 #include <stdio.h>
 
-
+/*
+ * Initializes an iterator structure.
+ *
+ * @params: (iterator) - a pointer to the iterator to be initialized
+ */
 void Iterator_init(struct Iterator* iterator, struct LinkedList* list){
 	iterator->first = list->first;
 	iterator->current = NULL;
