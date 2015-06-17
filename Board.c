@@ -569,6 +569,40 @@ static struct LinkedList* getPossibleSingleMoves (char** board, int player){
 }
 
 /*
+ * Trims the list of possible jump moves, so it only contains moves that result in the maximum amount of captures
+ *
+ * @params: (jumpMovesList) - the list of all possible jump moves
+ * @return: a trimmed list 
+ */
+static struct LinkedList* trimJumpMovesList (struct LinkedList* jumpMovesList){
+	int maxCaptures = 0;
+	
+	struct Iterator iterator;
+	Iterator_init(&iterator, jumpMovesList);
+	while(Iterator_hasNext(&iterator)){ //finding the maximum number of captures in a currently possible jump move
+		struct PossibleMove* currMove = (struct PossibleMove*)(Iterator_next(&iterator));
+		int currNumOfCaptures = PossibleMove_numOfCaptures(currMove);
+		if(currNumOfCaptures > maxCaptures){
+			maxCaptures = currNumOfCaptures;
+		}
+	}			
+	
+	//creating a new list and filling it only with the appropriate moves
+	struct LinkedList* trimmedJumpMoves = LinkedList_new(&PossibleMove_free);
+	struct Iterator secondIterator;
+	Iterator_init(&secondIterator, jumpMovesList);
+	while(Iterator_hasNext(&secondIterator)){
+		struct PossibleMove* currMove = (struct PossibleMove*)(Iterator_next(&secondIterator));
+		if(PossibleMove_numOfCaptures(currMove) == maxCaptures){
+			struct PossibleMove* clonedCurrMove = PossibleMove_clone(currMove);
+			LinkedList_add(trimmedJumpMoves, clonedCurrMove);
+		}
+	}
+	LinkedList_free(jumpMovesList);
+	return trimmedJumpMoves;		
+}
+
+/*
  * Main function for getting all of the moves currently possible for a player. 
  *
  * @params: (player) - the player whose moves are to be put in the list
@@ -577,30 +611,7 @@ static struct LinkedList* getPossibleSingleMoves (char** board, int player){
 struct LinkedList* Board_getPossibleMoves(char** board, int player){
 	struct LinkedList* possibleJumpMoves = getPossibleJumps(board, player);
 	if (LinkedList_length(possibleJumpMoves) != 0){ /* if jumps are possible, they are the only type of move legally possible */
-		int maxCaptures = 0;
-		
-		struct Iterator iterator;
-		Iterator_init(&iterator, possibleJumpMoves);
-		while(Iterator_hasNext(&iterator)){ //finding the maximum number of possible captures in a single move
-			struct PossibleMove* currMove = (struct PossibleMove*)(Iterator_next(&iterator));
-			int currNumOfCaptures = PossibleMove_numOfCaptures(currMove);
-			if(currNumOfCaptures > maxCaptures){
-				maxCaptures = currNumOfCaptures;
-			}
-		}			
-		
-		//trimming the possible jump moves list so it contains only jumps that result in the maximum number of captures
-		struct LinkedList* trimmedJumpMoves = LinkedList_new(&PossibleMove_free);
-		struct Iterator secondIterator;
-		Iterator_init(&secondIterator, possibleJumpMoves);
-		while(Iterator_hasNext(&secondIterator)){
-			struct PossibleMove* currMove = (struct PossibleMove*)(Iterator_next(&secondIterator));
-			if(PossibleMove_numOfCaptures(currMove) == maxCaptures){
-				LinkedList_add(trimmedJumpMoves, currMove);
-			}
-		}
-		LinkedList_free(possibleJumpMoves);
-		return trimmedJumpMoves;
+		return trimJumpMovesList(possibleJumpMoves);
 	}
 	LinkedList_free(possibleJumpMoves);
 	struct LinkedList* singleMoves = getPossibleSingleMoves(board, player);

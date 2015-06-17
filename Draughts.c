@@ -231,7 +231,7 @@ int setPiece(char* str){
 	
 	int x, y;
 	getPosition(str, matches, &x, &y);
-	if (!Board_isValidPosition(board, x, y) || !Board_isEmpty(board, x, y)){
+	if (!Board_isValidPosition(board, x, y)){
 		regfree(&r);
 		return 12;
 	}
