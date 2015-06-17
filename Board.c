@@ -204,13 +204,17 @@ static void Board_removeCaptured(char** board, int oldX, int oldY, int newX, int
  * @params: (oldX, oldY) - the coordinates of the piece to be moved
  *          (newX, newY) - the coordinates the piece will be moved to
  */
-static void Board_move(char** board, int oldX, int oldY, int newX, int newY){
+static int Board_move(char** board, int oldX, int oldY, int newX, int newY){
 	char piece = Board_getPiece(board, oldX, oldY);
 	Board_removePiece(board, oldX, oldY);
 	Board_setPiece(board, newX, newY, piece);
 	
 	Board_crownPieces(board);
 	Board_removeCaptured(board, oldX, oldY, newX, newY);
+	if (piece != Board_getPiece(board, oldX, oldY)){
+		return 1;
+	}
+	return 0;
 }
 
 /*
@@ -273,6 +277,21 @@ int Board_evalPiece(char** board, int x, int y, int player){
 		return -value;
 	}
 	return value;
+}
+
+static int Board_getColor(char** board, int x, int y){
+	char piece = Board_getPiece(board, x, y);
+	if (piece == Board_BLACK_KING || piece == Board_BLACK_MAN){
+		return BLACK;
+	}
+	if (piece == Board_WHITE_KING || piece == Board_WHITE_MAN){
+		return WHITE;
+	}
+	return -1;
+}
+
+static int Board_getColorByTile(char** board, struct Tile* tile){
+	return Board_getColor(board, tile->x, tile->y);
 }
 
 /*
@@ -354,19 +373,6 @@ int Board_getScore(char** board, int player){
 	return score;
 }
 
-static int Board_getColorByTile(char** board, struct Tile* tile){
-	int x = tile->x;
-	int y = tile->y ;
-	char piece = Board_getPiece(board, x, y);
-	if (piece == Board_BLACK_KING || piece == Board_BLACK_MAN){
-		return BLACK;
-	}
-	if (piece == Board_WHITE_KING || piece == Board_WHITE_MAN){
-		return WHITE;
-	}
-	return -1;
-}
-
 static void populateJumpList(struct LinkedList* possibleJumps, struct PossibleMove* possibleMove){
 	struct Tile* lastStep = PossibleMove_getLastTile(possibleMove);
 	char** board = possibleMove->board;
@@ -383,8 +389,9 @@ static void populateJumpList(struct LinkedList* possibleJumps, struct PossibleMo
 			struct Tile* currentLastTile = PossibleMove_getLastTile(possibleMove);
 			int player = Board_getColorByTile(possibleMove->board, currentLastTile);
 			int enemyNearby = (Board_evalPiece(board, x+i, y+j, player) < 0);
-			int enemyIsCapturable = Board_isEmpty(board,x+2*i, y+2*j);		
-			if(enemyNearby && enemyIsCapturable){ //found another possible jump after current last step
+			int enemyIsCapturable = Board_isEmpty(board,x+2*i, y+2*j);
+			int justCrowned = (player == WHITE && y == Board_SIZE) || (player == BLACK && y == 1);
+			if(enemyNearby && enemyIsCapturable && !justCrowned){ //found another possible jump after current last step
 				struct PossibleMove* currentMoveClone = PossibleMove_clone(possibleMove);
 				struct LinkedList* currentSteps = currentMoveClone->steps;
 				struct Tile* extraTile = Tile_new(x+2*i, y+2*j);
@@ -409,10 +416,8 @@ static void populateJumpList(struct LinkedList* possibleJumps, struct PossibleMo
 	}	
 }
 
-static struct Tile* canKingCaptureInDirection(char** board, struct Tile* tile, int dirX, int dirY){
-	int x = tile->x;
-	int y = tile->y;
-	player = Board_getColorByTile(board, tile);
+static struct Tile* canKingCaptureInDirection(char** board, int x, int y, int dirX, int dirY){
+	int player = Board_getColor(board, x, y);
 	int i = 1;
 	while(isInRange(x+(i+1)*dirX, y+(i+1)*dirY)){
 		int enemyNearby = Board_evalPiece(board, x+i*dirX, y+i*dirY, player)<0;
@@ -442,18 +447,28 @@ static struct LinkedList* getPossibleJumps (char** board, int player){
 			}
 			for (int i = -1; i <= 1; i += 2){
 				for (int j = -1; j <= 1; j += 2){
+					struct Tile* destTile = NULL;
 					if (!isInRange(x+i,y+j) || !isInRange(x+2*i,y+2*j)){
 						continue;
 					}
-					int enemyNearby = Board_evalPiece(board, x+i, y+j, player) < 0;
-					int enemyIsCapturable = Board_isEmpty(board, x+2*i, y+2*j);
-					if(enemyNearby && enemyIsCapturable){
-						struct Tile* destTile = Tile_new(x+2*i, y+2*j);
-						struct LinkedList* individualJumpMoves = LinkedList_new(&Tile_free);
-						LinkedList_add(individualJumpMoves, destTile);
-						struct PossibleMove* possibleJumpMove = PossibleMove_new(x, y, individualJumpMoves, board);
-						populateJumpList(jumpMoves, possibleJumpMove);
+					int pieceIsKing = Board_evalPiece(board, x, y, player) == 3;
+					if (pieceIsKing){
+						destTile = canKingCaptureInDirection(board, x, y, i, j);
 					}
+					else{
+						int enemyNearby = Board_evalPiece(board, x+i, y+j, player) < 0;
+						int enemyIsCapturable = Board_isEmpty(board, x+2*i, y+2*j);
+						if(enemyNearby && enemyIsCapturable){
+							destTile = Tile_new(x+2*i, y+2*j);
+						}
+					}
+					if (!destTile){
+						continue;
+					}
+					struct LinkedList* jumpSteps = LinkedList_new(&Tile_free);
+					LinkedList_add(jumpSteps, destTile);
+					struct PossibleMove* possibleJumpMove = PossibleMove_new(x, y, jumpSteps, board);
+					populateJumpList(jumpMoves, possibleJumpMove);
 				}
 			}
 		}	
@@ -476,16 +491,21 @@ static struct LinkedList* getPossibleSingleMoves (char** board, int player){
 			if (Board_evalPiece(board, x, y, player) <= 0){ //this tile doesn't contain one of this player's pieces
 				continue;
 			} 
-			for (int i = -1; i <= 1; i += 2){
-				if (!isInRange(x+i, y+forward)){
-					continue;
-				}
-				if(Board_isEmpty(board, x+i, y+forward)){
-					struct Tile* destTile = Tile_new(x+i, y+forward);
-					struct LinkedList* singleSteps = LinkedList_new(&Tile_free);
-					LinkedList_add(singleSteps, destTile);
-					struct PossibleMove* possibleSingleMove = PossibleMove_new(x, y, singleSteps, board);
-					LinkedList_add(possibleSingleMoves, possibleSingleMove);
+			for (int sideward = -1; sideward <= 1; sideward += 2){
+				int k = 1;
+				while (isInRange(x+k*sideward, y+k*forward)){
+					int pieceIsKing = Board_evalPiece(board, x, y, player) == 3;
+					if (!pieceIsKing && k > 1){
+						break;
+					}	
+					if(Board_isEmpty(board, x+k*sideward, y+k*forward)){
+						struct Tile* destTile = Tile_new(x+k*sideward, y+k*forward);
+						struct LinkedList* singleSteps = LinkedList_new(&Tile_free);
+						LinkedList_add(singleSteps, destTile);
+						struct PossibleMove* possibleSingleMove = PossibleMove_new(x, y, singleSteps, board);
+						LinkedList_add(possibleSingleMoves, possibleSingleMove);
+					}
+					k++;
 				}
 			}
 		}

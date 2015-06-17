@@ -172,7 +172,7 @@ int removePiece(char* str){
 		regfree(&r);
 		return 12; 
 	}
-	Board_remove(board, x, y);
+	Board_removePiece(board, x, y);
 	regfree(&r);
 	return 0;
 }
