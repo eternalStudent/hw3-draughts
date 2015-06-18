@@ -6,7 +6,7 @@
 /*
  * Creates a new board structure.
  *
- * @return: the new board structured as a two-dimensional char array.
+ * @return:  NULL if an allocation error occurred, the new board structured as a two-dimensional char array otherwise
  */
 char** Board_new(){
 	char** board = calloc(Board_SIZE, sizeof(char*));
@@ -492,7 +492,7 @@ static void populateJumpList(struct LinkedList* possibleJumps, struct PossibleMo
  * Retrieves a list of all jump moves currently possible for a player.
  *
  * @params: (player) - the player whose moves are to be put in the list
- * @return: a LinkedList struct of jump moves currently possible for the player 
+ * @return: a LinkedList struct of jump moves currently possible for the player, or NULL if any allocation errors occurred
  */
 static struct LinkedList* getPossibleJumps (char** board, int player){
 	struct LinkedList* jumpMoves = LinkedList_new(&PossibleMove_free);
@@ -552,7 +552,7 @@ static struct LinkedList* getPossibleJumps (char** board, int player){
  * Gets a list of all single step moves currently possible for a player.
  *
  * @params: (player) - the player whose moves are to be put in the list
- * @return: a list of single step moves currently possible for the player 
+ * @return: a list of single step moves currently possible for the player, or NULL if any allocation errors occurred 
  */
 static struct LinkedList* getPossibleSingleMoves (char** board, int player){
 	struct LinkedList* possibleSingleMoves = LinkedList_new(&PossibleMove_free);
@@ -607,7 +607,7 @@ static struct LinkedList* getPossibleSingleMoves (char** board, int player){
  * Trims the list of possible jump moves, so it only contains moves that result in the maximum amount of captures
  *
  * @params: (jumpMovesList) - the list of all possible jump moves
- * @return: a trimmed list 
+ * @return: a trimmed list, or NULL if any allocation errors occurred 
  */
 static struct LinkedList* trimJumpMovesList (struct LinkedList* jumpMovesList){
 	int maxCaptures = 0;
@@ -649,7 +649,7 @@ static struct LinkedList* trimJumpMovesList (struct LinkedList* jumpMovesList){
  * Main function for getting all of the moves currently possible for a player. 
  *
  * @params: (player) - the player whose moves are to be put in the list
- * @return: a list of all moves currently possible for the player 
+ * @return: a list of all moves currently possible for the player, or NULL if any allocation errors occurred 
  */
 struct LinkedList* Board_getPossibleMoves(char** board, int player){
 	struct LinkedList* possibleJumpMoves = getPossibleJumps(board, player);
