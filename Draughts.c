@@ -398,9 +398,6 @@ int executeCommand(char* command){
 			if (Board_isPlayable(board)){
 				state = GAME;
 				turn = WHITE;
-				if (human == WHITE){
-					printf("Enter your move:\n");
-				}
 				return updatePossibleMoves();
 			}
 			return 13;
@@ -550,12 +547,11 @@ int computerTurn(){
 /*
  * The human turn procedure
  */
-void humanTurn(){
-	if (state == GAME){
-		printf("Enter your move:\n");
-	}
-	
+void humanTurn(){	
 	while (turn == human){
+		if (state == GAME){
+			printf("Enter your move:\n");
+		}
 		char command[256];
 		readCommand(command);
 		int error = executeCommand(command);
