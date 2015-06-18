@@ -48,7 +48,6 @@ int allocationFailed(void* ptr){
 	return 0;
 }
 
-
 /*
  * Initializes the global variables.
  */
@@ -250,8 +249,12 @@ int populateSteps(struct LinkedList* steps, char* str){
 		if (!Board_isValidPosition(board, x, y)){
 			LinkedList_free(steps);
 			return 1;
-		}	
-		LinkedList_add(steps, Tile_new(x,y));
+		}
+		struct Tile* newStep = Tile_new(x,y);
+		if(allocationFailed(newStep)){
+			return -1;
+		}
+		LinkedList_add(steps, newStep);
 		token = strtok(NULL, "><");
 	}	
 	return 0;
@@ -300,10 +303,17 @@ int movePiece(char* str){
 			exitcode = 21;
 			break;
 		}
-			
-		if (populateSteps(steps, str+matches[3].rm_so)){
-			exitcode = 12;
-			break;
+		
+		int populateStepsCheck = populateSteps(steps, str+matches[3].rm_so);		
+		if (populateStepsCheck){
+			if (populateStepsCheck == 1){	
+				exitcode = 12;
+				break;
+			}
+			if (populateStepsCheck == -1){
+				exitcode = 21;
+				break;
+			}
 		}
 		
 		//constructing the move structure
@@ -324,6 +334,7 @@ int movePiece(char* str){
 		Board_print(board);
 		break;
 	}
+	
 	regfree(&r);
 	if (move != NULL){
 		PossibleMove_free(move);
@@ -475,6 +486,9 @@ struct PossibleMove* minimax(struct PossibleMove* possibleMove, int depth, int p
 	}
 	char** board = possibleMove->board;
 	struct LinkedList* possibleMoves = Board_getPossibleMoves(board, player);
+	if (allocationFailed(humanPossibleMoves)){
+		return NULL;
+	}
 	if (LinkedList_length(possibleMoves) == 0){
 		LinkedList_free(possibleMoves);
 		return possibleMove;
@@ -492,6 +506,9 @@ struct PossibleMove* minimax(struct PossibleMove* possibleMove, int depth, int p
 	while (Iterator_hasNext(&iterator)) {
 		struct PossibleMove* currentPossibleMove = (struct PossibleMove*)Iterator_next(&iterator);
 		struct PossibleMove* temp = minimax(currentPossibleMove, depth-1, player);
+		if (allocationFailed(temp)){
+			return NULL;
+		}
 		int score = Board_getScore(temp->board, player);
 		if (currentPossibleMove != temp){
 			PossibleMove_free(temp);
@@ -512,10 +529,13 @@ struct PossibleMove* minimax(struct PossibleMove* possibleMove, int depth, int p
 /*
  * The computer turn procedure.
  */
-void computerTurn(){
+int computerTurn(){
 	struct PossibleMove possibleMove;
 	possibleMove.board = board;
 	struct PossibleMove* bestMove = minimax(&possibleMove, maxRecursionDepth, !human);
+	if (allocationFailed(bestMove)){
+		return 1;
+	}
 	printf("Computer: ");
 	PossibleMove_print(bestMove);
 	printf("\n");
@@ -524,6 +544,7 @@ void computerTurn(){
 	printError(updatePossibleMoves());
 	turn = !turn;
 	Board_print(board);
+	return 0;
 }
 
 /*
@@ -552,7 +573,9 @@ int main(){
 			humanTurn();
 		}
 		else{
-			computerTurn();
+			if (computerTurn()){
+				freeAndExit();
+			}
 		}
 		
 		gameOver = (Board_getScore(board, turn) == -100);

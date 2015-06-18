@@ -19,6 +19,7 @@ char** Board_new(){
 	return board;
 }
 
+
 /*
  * Populates the board in the standard way.
  */
@@ -224,7 +225,7 @@ static int Board_move(char** board, int oldX, int oldY, int newX, int newY){
 	
 	Board_crownPieces(board);
 	Board_removeCaptured(board, oldX, oldY, newX, newY);
-	if (piece != Board_getPiece(board, oldX, oldY)){
+	if (piece != Board_getPiece(board, oldX, oldY)){ // piece became king after this move
 		return 1;
 	}
 	return 0;
@@ -327,11 +328,15 @@ static int Board_getColorByTile(char** board, struct Tile* tile){
 static struct Tile* canKingCaptureInDirection(char** board, int x, int y, int dirX, int dirY){
 	int player = Board_getColor(board, x, y);
 	int i = 1;
+	int foundFirstEnemyInThisDirection = 0;
 	while(isInRange(x+(i+1)*dirX, y+(i+1)*dirY)){
 		int enemyNearby = Board_evalPiece(board, x+i*dirX, y+i*dirY, player)<0;
 		int enemyIsCapturable = Board_isEmpty(board, x+(i+1)*dirX, y+(i+1)*dirY);
-		if (enemyNearby && enemyIsCapturable){
+		if (enemyNearby && enemyIsCapturable && !foundFirstEnemyInThisDirection){
 			return Tile_new(x+(i+1)*dirX, y+(i+1)*dirY);
+		}
+		if (enemyNearby){
+			foundFirstEnemyInThisDirection = 1; // to eliminate the possibility of capturing several pieces in one jump
 		}
 		i++;
 	}
@@ -461,8 +466,17 @@ static void populateJumpList(struct LinkedList* possibleJumps, struct PossibleMo
 			int justCrowned = (player == WHITE && y == Board_SIZE) || (player == BLACK && y == 1);
 			if(enemyNearby && enemyIsCapturable && !justCrowned){ //found another possible jump after current last step
 				struct PossibleMove* currentMoveClone = PossibleMove_clone(possibleMove);
+				if (currentMoveClone == NULL){ // allocation failed
+					possibleJumps = NULL;
+					return;
+				}
 				struct LinkedList* currentSteps = currentMoveClone->steps;
 				struct Tile* extraTile = Tile_new(x+2*i, y+2*j);
+				if (extraTile == NULL){ // allocation failed
+					possibleJumps = NULL;
+					return;
+				}
+				
 				LinkedList_add(currentSteps, extraTile);
 				
 				char oldX = currentLastStep->x;
@@ -491,6 +505,9 @@ static void populateJumpList(struct LinkedList* possibleJumps, struct PossibleMo
  */
 static struct LinkedList* getPossibleJumps (char** board, int player){
 	struct LinkedList* jumpMoves = LinkedList_new(&PossibleMove_free);
+	if(jumpMoves == NULL){ //allocation failed
+		return NULL;
+	}
 	
 	for (int x = 1; x <= Board_SIZE; x++){
 		for (int y = 1; y <= Board_SIZE; y++){			
@@ -512,15 +529,27 @@ static struct LinkedList* getPossibleJumps (char** board, int player){
 						int enemyIsCapturable = Board_isEmpty(board, x+2*i, y+2*j);
 						if(enemyNearby && enemyIsCapturable){
 							destTile = Tile_new(x+2*i, y+2*j);
+							if (destTile == NULL){ // allocation failed
+								return NULL;
+							}
 						}
 					}
 					if (!destTile){
 						continue;
 					}
 					struct LinkedList* jumpSteps = LinkedList_new(&Tile_free);
+					if (jumpSteps == NULL){ // allocation failed
+							return NULL;
+					}
 					LinkedList_add(jumpSteps, destTile);
 					struct PossibleMove* possibleJumpMove = PossibleMove_new(x, y, jumpSteps, board);
+					if (possibleJumpMove == NULL){ // allocation failed
+							return NULL;
+					}
 					populateJumpList(jumpMoves, possibleJumpMove);
+					if (jumpMoves == NULL){ //allocation failed
+						return NULL;
+					}
 				}
 			}
 		}	
@@ -536,6 +565,9 @@ static struct LinkedList* getPossibleJumps (char** board, int player){
  */
 static struct LinkedList* getPossibleSingleMoves (char** board, int player){
 	struct LinkedList* possibleSingleMoves = LinkedList_new(&PossibleMove_free);
+	if (possibleSingleMoves == NULL){
+		return NULL;
+	}
 	int forward = (player == BLACK) ? -1 : 1; /* for each player's different direction of "forward" */
 	for (int x = 1; x <= Board_SIZE; x++){
 		for (int y = 1; y <= Board_SIZE; y++){
@@ -553,9 +585,18 @@ static struct LinkedList* getPossibleSingleMoves (char** board, int player){
 					}	
 					if(Board_isEmpty(board, x+k*sideward, y+k)){
 						struct Tile* destTile = Tile_new(x+k*sideward, y+k);
+						if (destTile == NULL){ // allocation failed
+							return NULL;
+						}
 						struct LinkedList* singleSteps = LinkedList_new(&Tile_free);
+						if (singleSteps == NULL){ // allocation failed
+							return NULL;
+						}
 						LinkedList_add(singleSteps, destTile);
 						struct PossibleMove* possibleSingleMove = PossibleMove_new(x, y, singleSteps, board);
+						if (possibleSingleMove == NULL){ // allocation failed
+							return NULL;
+						}
 						LinkedList_add(possibleSingleMoves, possibleSingleMove);
 					}
 					if (!pieceIsKing && k == forward){
@@ -589,12 +630,18 @@ static struct LinkedList* trimJumpMovesList (struct LinkedList* jumpMovesList){
 	
 	//creating a new list and filling it only with the appropriate moves
 	struct LinkedList* trimmedJumpMoves = LinkedList_new(&PossibleMove_free);
+	if(trimmedJumpMoves == NULL){ // allocation failed
+		return NULL;
+	}
 	struct Iterator secondIterator;
 	Iterator_init(&secondIterator, jumpMovesList);
 	while(Iterator_hasNext(&secondIterator)){
 		struct PossibleMove* currMove = (struct PossibleMove*)(Iterator_next(&secondIterator));
 		if(PossibleMove_numOfCaptures(currMove) == maxCaptures){
 			struct PossibleMove* clonedCurrMove = PossibleMove_clone(currMove);
+			if (clonedCurrMove == NULL){ // allocation failed
+				return NULL;
+			}
 			LinkedList_add(trimmedJumpMoves, clonedCurrMove);
 		}
 	}
@@ -610,11 +657,22 @@ static struct LinkedList* trimJumpMovesList (struct LinkedList* jumpMovesList){
  */
 struct LinkedList* Board_getPossibleMoves(char** board, int player){
 	struct LinkedList* possibleJumpMoves = getPossibleJumps(board, player);
+	if (possibleJumpMoves == NULL){ // allocation failed
+		return NULL;
+	}
 	if (LinkedList_length(possibleJumpMoves) != 0){ /* if jumps are possible, they are the only type of move legally possible */
-		return trimJumpMovesList(possibleJumpMoves);
+		struct LinkedList* trimmedJumpMoves = trimJumpMovesList(possibleJumpMoves);
+		if(trimmedJumpMoves == NULL){ // allocation failed
+			return NULL;
+		}
+		return trimmedJumpMoves;
 	}
 	LinkedList_free(possibleJumpMoves);
 	struct LinkedList* singleMoves = getPossibleSingleMoves(board, player);
+	if (singleMoves == NULL){ // allocation failed
+		return NULL;
+	}
+	
 	return singleMoves;
 }	
 

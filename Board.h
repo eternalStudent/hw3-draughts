@@ -39,8 +39,6 @@ int Board_getScore   (char** board, int color);
 
 struct LinkedList* Board_getPossibleMoves(char** board, int player);
 
-static struct LinkedList* trimJumpMovesList (struct LinkedList* jumpMovesList);
-
 void Board_print     (char** board);
 
 void Board_free      (char** board);
