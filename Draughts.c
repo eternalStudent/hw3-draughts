@@ -276,7 +276,7 @@ int movePiece(char* str){
 	regex_t r; 	
 	regmatch_t matches[5];
 	int exitcode;
-	char* pattern = "^move\\s+<([a-z]),([0-9]+)>\\s+to\\s*((<[a-z],[0-9]+>)+)";
+	char* pattern = "^move\\s+<([a-z]),([0-9]+)>\\s+to\\s+((<[a-z],[0-9]+>)+)";
 	compile_regex(&r, pattern);
 	struct PossibleMove* move = NULL;
 	while(1){
@@ -464,8 +464,6 @@ void printError(int error){
 		case(15):
 			printf("Illegal move\n");
 			break;
-		case(17):
-			break;
 		case(21):
 			freeAndExit();
 		default:
@@ -483,9 +481,6 @@ struct PossibleMove* minimax(struct PossibleMove* possibleMove, int depth, int p
 	}
 	char** board = possibleMove->board;
 	struct LinkedList* possibleMoves = Board_getPossibleMoves(board, player);
-	if (allocationFailed(humanPossibleMoves)){
-		return NULL;
-	}
 	if (LinkedList_length(possibleMoves) == 0){
 		LinkedList_free(possibleMoves);
 		return possibleMove;
@@ -503,9 +498,6 @@ struct PossibleMove* minimax(struct PossibleMove* possibleMove, int depth, int p
 	while (Iterator_hasNext(&iterator)) {
 		struct PossibleMove* currentPossibleMove = (struct PossibleMove*)Iterator_next(&iterator);
 		struct PossibleMove* temp = minimax(currentPossibleMove, depth-1, player);
-		if (allocationFailed(temp)){
-			return NULL;
-		}
 		int score = Board_getScore(temp->board, player);
 		if (currentPossibleMove != temp){
 			PossibleMove_free(temp);
@@ -526,13 +518,10 @@ struct PossibleMove* minimax(struct PossibleMove* possibleMove, int depth, int p
 /*
  * The computer turn procedure.
  */
-int computerTurn(){
+void computerTurn(){
 	struct PossibleMove possibleMove;
 	possibleMove.board = board;
 	struct PossibleMove* bestMove = minimax(&possibleMove, maxRecursionDepth, !human);
-	if (allocationFailed(bestMove)){
-		return 1;
-	}
 	printf("Computer: ");
 	PossibleMove_print(bestMove);
 	printf("\n");
@@ -541,7 +530,6 @@ int computerTurn(){
 	printError(updatePossibleMoves());
 	turn = !turn;
 	Board_print(board);
-	return 0;
 }
 
 /*
@@ -569,9 +557,7 @@ int main(){
 			humanTurn();
 		}
 		else{
-			if (computerTurn()){
-				freeAndExit();
-			}
+			computerTurn();	
 		}
 		
 		gameOver = (Board_getScore(board, turn) == -100);
